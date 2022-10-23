@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 
 from PySide6.QtWidgets import QApplication
-from app.mainwindow import MainWindow
+from app.controller.mainwindow import MainWindow
 
 
 if __name__ == "__main__":

@@ -8,9 +8,9 @@ from logging.config import dictConfig
 from PySide6.QtWidgets import QMainWindow, QTabWidget
 
 from app.db.database import DB
-from .ui.ui_mainwindow import Ui_MainWindow
-from .projutil.log_conf import DIC_LOGGING_CONFIG
-from .projutil.conf import LOGGER_NAME
+from ..ui.ui_mainwindow import Ui_MainWindow
+from ..projutil.log_conf import DIC_LOGGING_CONFIG
+from ..projutil.conf import LOGGER_NAME
 from .opcwindow import OpcWindow
 
 dictConfig(DIC_LOGGING_CONFIG)

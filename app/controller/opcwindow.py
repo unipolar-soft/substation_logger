@@ -17,13 +17,13 @@ from PySide6.QtWidgets import (QApplication, QHeaderView, QLabel, QLineEdit,
     QPushButton, QSizePolicy, QWidget, QMessageBox, QAbstractItemView,
     QMenu, QDialog, QDialogButtonBox, QVBoxLayout)
 
-from .ui.ui_opc import Ui_OPCView
-from .projutil.log_conf import DIC_LOGGING_CONFIG
-from .projutil.conf import LOGGER_NAME
-from .projutil.util import show_message
-from .db.database import DB
-from .db.tables import SubStation, Tags
-from .models.tablemodel import TableModel
+from ..ui.ui_opc import Ui_OPCView
+from ..projutil.log_conf import DIC_LOGGING_CONFIG
+from ..projutil.conf import LOGGER_NAME
+from ..projutil.util import show_message
+from ..db.database import DB
+from ..db.tables import SubStation, Tags
+from ..models.tablemodel import TableModel
 dictConfig(DIC_LOGGING_CONFIG)
 logger = logging.getLogger(LOGGER_NAME)
 
