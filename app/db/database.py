@@ -102,7 +102,31 @@ class DB:
             item = KeyStore(key=key, value=value)
         self.session.add(item)
         self.session.commit()
+    
+    def get_tags(self, monitored=False):
+        if monitored:
+            tags = self.session.query(Tags).filter_by(isMonitored=monitored).all()
+        else:
+            tags = self.session.query(Tags).all()
+        tag_paths = []
+        for tag in tags:
+            tag_paths.append(tag.path)
+        return tag_paths
+    
+    def get_substation(self, name=None):
+        subs = []
+        if not name:
+            subs = self.session.query(SubStation).all()
+        return subs
 
+    def get_substation_paths(self, name=None):
+        subs = self.get_substation(name)
+
+        sub_paths = []
+        for sub in subs:
+            sub_paths.append(sub.path)
+        return sub_paths
+        
     def close(self):
         self.session.close()
 

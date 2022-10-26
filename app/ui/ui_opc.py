@@ -90,7 +90,7 @@ class Ui_OPCView(object):
         self.connectionBtn.setGeometry(QRect(620, 30, 61, 31))
         self.linkLabel = QLabel(OPCView)
         self.linkLabel.setObjectName(u"linkLabel")
-        self.linkLabel.setGeometry(QRect(10, 60, 51, 20))
+        self.linkLabel.setGeometry(QRect(10, 60, 61, 20))
         self.linkEdit = QLineEdit(OPCView)
         self.linkEdit.setObjectName(u"linkEdit")
         self.linkEdit.setGeometry(QRect(80, 60, 411, 30))
@@ -122,7 +122,7 @@ class Ui_OPCView(object):
         self.urlLabel.setText(QCoreApplication.translate("OPCView", u"URL", None))
         self.connectionIndicator.setText("")
         self.connectionBtn.setText(QCoreApplication.translate("OPCView", u"Test", None))
-        self.linkLabel.setText(QCoreApplication.translate("OPCView", u"Link", None))
+        self.linkLabel.setText(QCoreApplication.translate("OPCView", u"Prefix", None))
         self.urlEditBtn.setText("")
         self.linkEditBtn.setText("")
     # retranslateUi
