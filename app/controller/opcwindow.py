@@ -7,7 +7,7 @@ from logging.config import dictConfig
 
 
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect,
+    QMetaObject, QObject, QPoint, QRect, QEvent,
     QSize, QTime, QUrl, Qt)
 from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
@@ -19,29 +19,77 @@ from PySide6.QtWidgets import (QApplication, QHeaderView, QLabel, QLineEdit,
 
 from ..ui.ui_opc import Ui_OPCView
 from ..projutil.log_conf import DIC_LOGGING_CONFIG
-from ..projutil.conf import LOGGER_NAME
+from ..projutil import conf
 from ..projutil.util import show_message
 from ..db.database import DB
 from ..db.tables import SubStation, Tags
 from ..models.tablemodel import TableModel
+from ..res import icons
 dictConfig(DIC_LOGGING_CONFIG)
-logger = logging.getLogger(LOGGER_NAME)
+logger = logging.getLogger(conf.LOGGER_NAME)
 
 class OpcWindow(QWidget):
     def __init__(self, db: DB):
-        super(OpcWindow, self).__init__()
-        self.load_ui()
+        super(OpcWindow, self).__init__()      
         self.db = db
+        self.load_ui()
 
     def load_ui(self):
         self.ui = Ui_OPCView()
         self.ui.setupUi(self)
+        self.setIcons()
 
         self.setupStationTable()
         self.setupTagTable()
+        self.loadValues()
 
         self.ui.substationAddBtn.clicked.connect(self.addSubStation)
         self.ui.tagAddBtn.clicked.connect(self.addTag)
+        self.ui.urlEdit.returnPressed.connect(self.urlChanged)
+        self.ui.linkEdit.editingFinished.connect(self.linkEditChanged)
+
+        self.ui.urlEditBtn.clicked.connect(self.urlEditClicked)
+        self.ui.linkEditBtn.clicked.connect(self.linkeditClicked)
+
+    
+    def loadValues(self):
+        url = self.db.get_value_from_key(conf.KEY_URL)
+        self.ui.urlEdit.setText(url)
+        self.ui.urlEdit.setReadOnly(True)
+
+        link = self.db.get_value_from_key(conf.KEY_LINK)
+        self.ui.linkEdit.setText(link)
+        self.ui.linkEdit.setReadOnly(True)
+
+    def linkeditClicked(self):
+        self.ui.linkEdit.setReadOnly(False)
+        self.ui.linkEdit.setFocus()
+    
+    def urlEditClicked(self):
+        self.ui.urlEdit.setReadOnly(False)
+        self.ui.urlEdit.setFocus()
+
+    def urlChanged(self):
+        text = self.ui.urlEdit.text()
+        self.db.update_or_insert_keyValue(conf.KEY_URL, text)
+
+        self.ui.urlEdit.setReadOnly(True)
+    
+    def linkEditChanged(self):
+        text = self.ui.linkEdit.text()
+        l = text.split('.')
+        if (len(l)<2):
+            show_message("Provide channel and device, eg. Channel1.Device1")
+            return
+        channel = l[0]
+        device = l[1]
+        xtraPath = '.'.join(l[2:])
+        logger.info(f"Channel: {channel}, Device: {device}, xtraPath: {xtraPath}")
+        self.db.update_or_insert_keyValue(conf.KEY_LINK, text)
+        # self.db.update_or_insert_keyValue(conf.KEY_DEVICE, device)
+        # self.db.update_or_insert_keyValue(conf.KEY_XTRAPATH, xtraPath)
+
+        self.ui.linkEdit.setReadOnly(True)
     
     def addSubStation(self):
         stationName = self.ui.stationNameEdit.text()
@@ -86,3 +134,8 @@ class OpcWindow(QWidget):
         self.ui.tagTable.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.ui.tagTable.setSelectionMode(QAbstractItemView.SingleSelection)
         self.ui.tagTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
+    
+    def setIcons(self):
+            icon = QIcon(QPixmap(":/icons/edit.png"))
+            self.ui.urlEditBtn.setIcon(icon)
+            self.ui.linkEditBtn.setIcon(icon)

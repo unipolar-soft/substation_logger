@@ -88,15 +88,19 @@ class DB:
                      .filter_by(key=key)
                      .first()
                      )
-        return key_value
+        if key_value:
+            return key_value.value
+        else:
+            return ''
+    
+    def update_or_insert_keyValue(self, key, value):
+        item = self.session.query(KeyStore).filter_by(key=key).first()
 
-    def update_key_vlue(self, key, value):
-        stmt = (
-            update(KeyStore)
-            .filter(KeyStore.key == key)
-            .values(value=value)
-        )
-        self.session.execute(stmt)
+        if item:
+            item.value = value
+        else:
+            item = KeyStore(key=key, value=value)
+        self.session.add(item)
         self.session.commit()
 
     def close(self):
