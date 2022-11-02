@@ -1,6 +1,11 @@
-import os
+from datetime import datetime
+import imp
+import psutil
+import queue
 from threading import Thread
 import time
+import requests
+import json
 import logging
 from PySide6.QtCore import Signal, QObject
 from queue import Queue
@@ -12,6 +17,7 @@ from logging.config import dictConfig
 from ..projutil.log_conf import DIC_LOGGING_CONFIG
 from ..projutil.util import show_message
 from ..projutil import conf
+from .jsonlogger import write_json
 
 dictConfig(DIC_LOGGING_CONFIG)
 logger = logging.getLogger(conf.LOGGER_NAME)
@@ -35,14 +41,10 @@ latest_machine_stat = {}
 # a global variable to pass the value of latest machine status
 changed_machine_status = []
 
-tags = KEPSERVER_CONF['tags']
-monitored_tags = KEPSERVER_CONF['monitored_tags']
-channel = KEPSERVER_CONF['channel']
-devices = KEPSERVER_CONF['device']
-extra_path = KEPSERVER_CONF['extra_path']
 db = DB()
 url = db.get_value_from_key(conf.KEY_URL)
 prefix = db.get_value_from_key(conf.KEY_LINK)
+tags = db.get_tags()
 
 dateformat = "%Y-%m-%d %H:%M:%S"
 process_running = False
@@ -127,27 +129,162 @@ def bulkread_machine_tags(device):
         return None
 
     return tag_values
+
+def session_for_src_addr(addr: str) -> requests.Session:
+    """
+    Create `Session` which will bind to the specified local address
+    rather than auto-selecting it.
+    """
+    session = requests.Session()
+    for prefix in ('http://', 'https://'):
+        session.get_adapter(prefix).init_poolmanager(
+            # those are default values from HTTPAdapter's constructor
+            connections=requests.adapters.DEFAULT_POOLSIZE,
+            maxsize=requests.adapters.DEFAULT_POOLSIZE,
+            # This should be a tuple of (address, port). Port 0 means auto-selection.
+            source_address=(addr, 0),
+        )
+
+    return session
+
+def post_request(data):
+    headers = {'content-type': 'application/json'}
+    url =  "http://192.168.0.98:8080/interruptionlog/api/pushlog.php"
     
+    adapater = db.get_value_from_key(conf.KEY_API_ADAPTER)
+    if not adapater:
+        logger.error("No adapter configured for API")
+        return
+    address = psutil.net_if_addrs()[adapater][1].address
+    session = session_for_src_addr(address)
+
+    try:
+    #enclose data in an array, the API expectiing an array
+        response = session.post(url, data=json.dumps([data]), headers=headers)
+        response = response.json()
+        if response["Status"]:
+            logger.info(f"API data updated for {data['feeder_no']}")
+            return True
+        else:
+            return False
+    except requests.RequestException as e:
+        logger.error(e)
+        return False
+
+def get_time_data(breaker_status) :
+    time_now_str = datetime.now().strftime(dateformat)
+    #feeder is ON
+    if breaker_status:
+        return {
+            "power_on_time": time_now_str,
+            "power_off_time":""
+        }
+
+    else:
+        return {
+            "power_on_time": "",
+            "power_off_time": time_now_str
+        }
+
+def log_data_change(changed_status, station):
+
+    feeder_status = {
+        "feeder_no": changed_status["Feeder_No"],
+        "interruption_type": int(changed_status["Feeder_TRIP_Status"]),
+        "current":{
+            "currentA":changed_status["Feeder_Relay_IA"],
+            "currentB":changed_status["Feeder_Relay_IB"],
+            "currentC":changed_status["Feeder_Relay_IC"]
+            }
+    }
+    time_data = get_time_data(changed_status["Feeder_Breaker_Status"])
+    feeder_status.update(time_data)
+    logger.info({
+        station: feeder_status
+    })
+    res = post_request(feeder_status)
+    feeder_status["api_updated"] = True if res else False
+    write_json(feeder_status)
+    db.add_feeder_trip(
+        feeder_no = changed_status["Feeder_No"],
+        interruption_type = int(changed_status["Feeder_TRIP_Status"]), 
+        currentA = changed_status["Feeder_Relay_IA"], 
+        currentB = changed_status["Feeder_Relay_IB"],
+        currentC = changed_status["Feeder_Relay_IC"], 
+        power_on_time = feeder_status["power_on_time"],
+        power_off_time = feeder_status["power_off_time"],
+        api_updated = feeder_status["api_updated"]
+        )
+
+def update_API(station):
+    logger.info(f"Requesting server values for {station}")
+    status_server = bulkread_machine_tags(station)
+    if not status_server:
+        logger.warning(f"Server returned no value for {station}")
+        return
+    
+    logger.info({
+        station: status_server
+    })
+
+    if station not in latest_machine_stat:
+        latest_machine_stat[station] = status_server
+        return
+
+    # check if the server sent values are same as previously stored value.
+    if (
+        latest_machine_stat[station] != status_server
+    ):
+        latest_machine_stat[station] = status_server
+        log_data_change(latest_machine_stat[station], station)
+        # log_to_db(machine, latest_machine_stat[machineid])
+        return
+    else:
+        logger.info("Previous value persists")
+
+def update():
+    global interrupt_flag, queue
+    logger.info("Looking for event change data")
+    while True:
+        try:
+            node, value, data = tag_update_queue.get(timeout=5)
+            tag_data = extract(node, value, data)
+            # broadcast_data_change(tag_data,changed_machine_status)
+            if tag_data["value"] is not None:
+                station = tag_data["station"]
+                tag = tag_data["name"]
+                # this checks if the notifying tag value already has been updated.
+                if (
+                    station in latest_machine_stat
+                    and tag_data["value"] == latest_machine_stat[station][tag]
+                ):
+                    logger.info("Previous value persists")
+                else:
+                    logger.info(f"{tag} of {station} has changed to {str(tag_data['value'])}")
+                    logger.info(f'a full data scan for {station} en route')
+                    update_API(station)
+            else:
+                logger.info(f"Update skipped for {tag_data['name']}")
+            tag_update_queue.task_done()
+        except queue.Empty:
+            # the event queue is empty and an intruption by user is captured, 
+            # so break out of the thread
+            if interrupt_flag:
+                break
+
 # this class hosts function that listens for data change notification in tags
 class SubHandler(object):
 
-    def __init__(self, callback) -> None:
-        self.callback = callback
     """
     Client to subscription. It will receive events from server
     """
 
-    def datachange_notification(self, node, value, data):
+    def datachange_notification(self, node, val, data):
         logger.info("Data change event fired")
-        tag_data = extract(node, value, data)
-        if tag_data['health'] == 'Good':
-            self.callback(tag_data)
+        tag_update_queue.put((node, val, data))
 
-    def status_change_notification(self, status):
-        """
-        called for every status change notification from server
-        """
-        logger.info(f'server status change notification {status}')
+    def event_notification(self, event):
+        logger.info("Python: New event", event)
 
 def connect(caller):
     if (not url) or (url == ''):
@@ -191,116 +328,15 @@ class OpcuaClient(QObject):
     # process_end_signal = Signal(Batch)
 
     client = None
+    opc_disconnected = Signal()
+    opc_connected = Signal()
 
+    def opc_is_disconnected(self):
+        self.opc_disconnected.emit()
     
     def start_service(self):
         self.opcthread = Thread(target=self.opc_runner, daemon=True)
         self.opcthread.start()
-    
-    def processReportValues(self, tag_data):
-        tag = tag_data['name']
-        if tag == 'Report_Value_Aggr1':
-            self.batch.aggr1 = tag_data['value']
-        elif tag == "Report_Value_Aggr2":
-            self.batch.aggr2 = tag_data['value']
-        elif tag == 'Report_Value_Sand':
-            self.batch.sand = tag_data['value']
-        elif tag == 'Report_Value_Cement':
-            self.batch.cement = tag_data['value']
-        elif tag == 'Report_Value_Water':
-            self.batch.water = tag_data['value']
-        elif tag == 'Report_Value_Admixture':
-            self.batch.admixture = tag_data['value']
-        
-        self.db.get_session().commit()
-        
-        self.process_end_signal.emit(self.batch)
-    
-    def processStatus(self, tag_data):
-        tag = Tag(tag_data['name'], tag_data['value'])
-        logger.info(f"Process Status Changed :: {tag}")
-
-        self.processStatusChanged.emit(tag)
-    
-    def mixingValue(self, tag_data):
-        tag = Tag(tag_data['name'], tag_data['value'])
-        logger.info(f"Mixing value changed :: {tag}")
-        self.mixingValueChanged.emit(tag)
-    
-    def actualValue(self, tag_data):
-        tag = Tag(tag_data['name'], tag_data['value'])
-        logger.info(f"Actual value changed :: {tag}")
-        self.actualValueChanged.emit(tag)
-    
-    def dispValue(self, tag_data):
-        tag = Tag(tag_data['name'], tag_data['value'])
-        logger.info(f"Display value changed :: {tag}")
-        self.dispValueChanged.emit(tag)
-    
-    def processStart(self, tag_data):
-        tag = Tag(tag_data['name'], tag_data['value'])
-        logger.info(f"Display value changed :: {tag}")
-        self.processStartChanged.emit(tag)
-    
-    def processStop(self, tag_data):
-        tag = Tag(tag_data['name'], tag_data['value'])
-        logger.info(f"Display value changed :: {tag}")
-        self.processStopChanged.emit(tag)
-
-    def forOfValue(self, tag_data):
-        tag = Tag(tag_data['name'], tag_data['value'])
-        logger.info(f"For/Of value changed :: {tag}")
-        self.forOfValueChange.emit(tag)
-
-    def event_callback(self, tag_data):
-        tag = tag_data['name']
-        if tag.startswith("Report_Value"):
-            self.processReportValues(tag_data)
-        elif tag.endswith("_FB"):
-            self.processStatus(tag_data)
-        elif tag.startswith("Mixing_"):
-            self.mixingValue(tag_data)
-        elif tag.startswith("Actual_"):
-            self.actualValue(tag_data)
-        elif tag.startswith("Disp_"):
-            self.dispValue(tag_data)
-        elif tag.startswith("Scada_Process_Start"):
-            self.processStart(tag_data)
-        elif tag.startswith("Stop"):
-            self.processStop(tag_data)
-        elif tag.startswith("Of"):
-            self.forOfValue(tag_data)
-        elif tag.startswith("For"):
-            self.forOfValue(tag_data)
-    
-    def writeSingleValue(self, value, variant, tag_name, device):
-        dv = ua.DataValue(ua.Variant(value, variant))
-        dv.ServerTimestamp = None
-        dv.SourceTimestamp = None
-        node = self.client.get_node(get_node_path(device, tag_name))
-        return self.write_values([node],[dv])
-   
-    def write_values(self, nodes, values):
-        try:
-            if len(nodes) != len(values):
-                logger.info("Number of tags don't correspond to number of values")
-                return
-            if not self.client:
-                self.client = connect("write_value")
-            self.client.set_values(nodes, values)
-            logger.info("Value written to the ua server")
-            return True
-        except Exception as e:
-            logger.error(e)
-            return False
-
-    def read_value(self, tag, device):
-        if not self.client:
-            self.client = connect("read")
-        node = self.client.get_node(get_node_path(device, tag))
-
-        vals = self.client.get_values([node])
-        return vals[0]
 
     def is_alive(self):
         if not self.client:
@@ -313,7 +349,7 @@ class OpcuaClient(QObject):
             return False
     
     def opc_subscribe(self):
-        sub = self.client.create_subscription(500, SubHandler(self.event_callback))
+        sub = self.client.create_subscription(500, SubHandler())
 
         stations = db.get_substation_paths()
 
@@ -331,19 +367,27 @@ class OpcuaClient(QObject):
                 except Exception as e:
                     logger.error(e)
                     self.client.disconnect()
+                    self.opc_disconnected.emit()
                     break
         return True
 
     def opc_runner(self):
+        self.data_updater = Thread(target=update, daemon=False)
+        self.data_updater.start()
         while 1:
             if self.is_alive():
+                # emit signal to broadcast client connection
+                self.opc_connected.emit()
                 pass
                 # opc has stopped working, restart opc
             else:
                 self.client = connect("opc_start")
                 if self.client:
+                    # emit signal to broadcast client disconnection
+                    self.opc_disconnected.emit()
                     self.opc_subscribe()
             time.sleep(3)
+        
 
     def close_client(self):
         self.opcthread.join(1)

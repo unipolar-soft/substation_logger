@@ -25,6 +25,11 @@
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionAPI_Interface">
+   <property name="text">
+    <string>API Interface</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

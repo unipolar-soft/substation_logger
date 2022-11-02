@@ -7,9 +7,9 @@ from sqlalchemy import create_engine, insert
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from PySide6.QtSql import QSqlDatabase
-from .tables import create_tables, KeyStore, SubStation, Tags
+from .tables import create_tables, KeyStore, SubStation, Tags, FeederTrip
 from sqlalchemy import update
-from datetime import datetime
+from PySide6.QtCore import Signal, QObject
 from .db_config import DATABASE_CONNECTION_NAME, DATABASE_NAME
 
 
@@ -17,12 +17,14 @@ dictConfig(DIC_LOGGING_CONFIG)
 logger = logging.getLogger(LOGGER_NAME)
 
 
-class DB:
+class DB(QObject):
     db = None
     engine = create_engine(
         f"sqlite:///{DATABASE_NAME}", echo=True, future=True)
+    feederTripAdded = Signal()
 
-    def __init__(self):
+    def __init__(self, parent=None):
+        super().__init__(parent)
         create_tables(engine=self.engine)
         self.session = Session(self.engine)
         self.initialize_qsql()
@@ -126,6 +128,21 @@ class DB:
         for sub in subs:
             sub_paths.append(sub.path)
         return sub_paths
+    
+    def add_feeder_trip(self, feeder_no, interruption_type, currentA, currentB,
+                            currentC, power_on_time , power_off_time):
+        trip = FeederTrip(feeder_no = feeder_no, 
+                   interruption_type = interruption_type, 
+                   currentA = currentA, 
+                   currentB = currentB,
+                   currentC = currentC,
+                   power_on_time = power_on_time,
+                   power_off_time = power_off_time,
+                   api_updated=False)
+        self.session.add(trip)
+        self.session.commit()
+        self.feederTripAdded.emit()
+
         
     def close(self):
         self.session.close()
