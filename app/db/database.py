@@ -130,15 +130,17 @@ class DB(QObject):
         return sub_paths
     
     def add_feeder_trip(self, feeder_no, interruption_type, currentA, currentB,
-                            currentC, power_on_time , power_off_time):
+                            currentC, power_on_time , power_off_time, api_updated):
         trip = FeederTrip(feeder_no = feeder_no, 
                    interruption_type = interruption_type, 
                    currentA = currentA, 
                    currentB = currentB,
                    currentC = currentC,
-                   power_on_time = power_on_time,
-                   power_off_time = power_off_time,
                    api_updated=False)
+        if power_on_time:
+            trip.power_on_time = power_on_time
+        else:
+            trip.power_off_time = power_off_time
         self.session.add(trip)
         self.session.commit()
         self.feederTripAdded.emit()

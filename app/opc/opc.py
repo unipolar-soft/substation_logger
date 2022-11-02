@@ -8,6 +8,7 @@ import time
 import requests
 import json
 import logging
+import copy
 from PySide6.QtCore import Signal, QObject
 from queue import Queue
 from opcua import Client
@@ -42,14 +43,21 @@ latest_machine_stat = {}
 # a global variable to pass the value of latest machine status
 changed_machine_status = []
 
-db = DB()
-url = db.get_value_from_key(conf.KEY_URL)
-prefix = db.get_value_from_key(conf.KEY_LINK)
-tags = db.get_tags()
+db = None
+url = None
+prefix = None
+tags = None
 
 dateformat = "%Y-%m-%d %H:%M:%S"
 process_running = False
 process_end_signal = None
+
+def load_conf():
+    global url, prefix, tags
+
+    url = db.get_value_from_key(conf.KEY_URL)
+    prefix = db.get_value_from_key(conf.KEY_LINK)
+    tags = db.get_tags()
 
 def get_node_path(device: str, tag: str):
     if (not prefix) or (prefix == ""):
@@ -71,7 +79,7 @@ def extract(node, val, data):
     serverT = data_value.ServerTimestamp
     tag_update_time = sourceT if sourceT else serverT
     tag_data = {
-        "device": tag_identifier.split(".")[1],
+        "station": tag_identifier.split(".")[1],
         "name": tag_name,
         "path": tag_identifier,
         "value": tag_value,
@@ -151,8 +159,8 @@ def session_for_src_addr(addr: str) -> requests.Session:
 def post_request(data):
     headers = {'content-type': 'application/json'}
     url =  "http://192.168.0.98:8080/interruptionlog/api/pushlog.php"
-    
-    adapater = db.get_value_from_key(conf.KEY_API_ADAPTER)
+    db_ins = DB()
+    adapater = db_ins.get_value_from_key(conf.KEY_API_ADAPTER)
     if not adapater:
         logger.error("No adapter configured for API")
         return
@@ -160,6 +168,11 @@ def post_request(data):
     session = session_for_src_addr(address)
 
     try:
+        if data["power_on_time"] != "":
+            data["power_on_time"]  = data["power_on_time"].strftime(dateformat)
+        else:
+            data["power_off_time"]  = data["power_off_time"].strftime(dateformat)
+
     #enclose data in an array, the API expectiing an array
         response = session.post(url, data=json.dumps([data]), headers=headers)
         response = response.json()
@@ -173,18 +186,18 @@ def post_request(data):
         return False
 
 def get_time_data(breaker_status) :
-    time_now_str = datetime.now().strftime(dateformat)
+    time_now = datetime.now()
     #feeder is ON
     if breaker_status:
         return {
-            "power_on_time": time_now_str,
-            "power_off_time":""
+            "power_on_time": time_now,
+            "power_off_time":None
         }
 
     else:
         return {
-            "power_on_time": "",
-            "power_off_time": time_now_str
+            "power_on_time": None,
+            "power_off_time": time_now
         }
 
 def log_data_change(changed_status, station):
@@ -203,10 +216,12 @@ def log_data_change(changed_status, station):
     logger.info({
         station: feeder_status
     })
-    res = post_request(feeder_status)
+    feeder_status_copy = copy.deepcopy(feeder_status)
+    res = post_request(feeder_status_copy)
     feeder_status["api_updated"] = True if res else False
-    write_json(feeder_status)
-    db.add_feeder_trip(
+    # write_json(feeder_status)
+    db_ins = DB()
+    db_ins.add_feeder_trip(
         feeder_no = changed_status["Feeder_No"],
         interruption_type = int(changed_status["Feeder_TRIP_Status"]), 
         currentA = changed_status["Feeder_Relay_IA"], 
@@ -374,8 +389,11 @@ class OpcuaClient(QObject):
         return True
 
     def opc_runner(self):
+        global db
         self.data_updater = Thread(target=update, daemon=False)
         self.data_updater.start()
+        db = DB()
+        load_conf()
         while self.run_flag:
             if self.is_alive():
                 # emit signal to broadcast client connection
