@@ -5,6 +5,7 @@ import logging
 from logging.config import dictConfig
 
 from PySide6.QtWidgets import QMainWindow, QTabWidget, QInputDialog
+from PySide6.QtGui import QCloseEvent
 
 from app.db.database import DB
 from ..ui.ui_mainwindow import Ui_MainWindow
@@ -12,6 +13,7 @@ from ..projutil.log_conf import DIC_LOGGING_CONFIG
 from ..projutil import conf
 from .opcwindow import OpcWindow
 from .dashboard import DashBoard
+from ..opc.opc import OpcuaClient
 
 dictConfig(DIC_LOGGING_CONFIG)
 logger = logging.getLogger(conf.LOGGER_NAME)
@@ -20,9 +22,11 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         
+        # member initializations
         self.db = DB()
-        self.load_ui()
+        self.opcClient = OpcuaClient()
 
+        self.load_ui()
         adapter = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
         if not adapter:
             self.db.update_or_insert_keyValue(conf.KEY_API_ADAPTER, "Ethernet")
@@ -38,7 +42,8 @@ class MainWindow(QMainWindow):
         menuConnection = self.ui.menubar.addMenu("Connection")
         action = menuConnection.addAction("API Adapter")
         action.triggered.connect(self.netInterfaceSelection)
-      
+
+        self.opcClient.start_service()
     
     def netInterfaceSelection(self):
         prev_adap = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
@@ -54,3 +59,8 @@ class MainWindow(QMainWindow):
         if ok and item:
             self.db.update_or_insert_keyValue(conf.KEY_API_ADAPTER, item)
             logger.info(f"API Adapter Changed to {item}")
+    
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self.opcClient.close_client()
+        print("Closeing the window")
+        # return super().closeEvent(event)

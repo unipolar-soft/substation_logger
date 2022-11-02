@@ -9,6 +9,7 @@ sqlalchemy = "*"
 opcua = "*"
 requests = "*"
 psutil = "*"
+cryptography = "*"
 
 [dev-packages]
 

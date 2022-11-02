@@ -1,3 +1,4 @@
+from concurrent.futures import thread
 from datetime import datetime
 import imp
 import psutil
@@ -109,7 +110,7 @@ def bulkread_machine_tags(device):
     # in such a case we try four more times.
     tag_values = None
     tryout = 1
-    while tryout <= 5:
+    while tryout <= 5 and not interrupt_flag:
         try:
             values = client.get_values(nodes)
             tryout = tryout + 1
@@ -292,7 +293,7 @@ def connect(caller):
         return
     retry = 5
     client = None
-    while retry > 0 :
+    while retry > 0 and not interrupt_flag :
         try:
             client = Client(url, timeout=10)
             client.connect()
@@ -330,6 +331,7 @@ class OpcuaClient(QObject):
     client = None
     opc_disconnected = Signal()
     opc_connected = Signal()
+    run_flag = True
 
     def opc_is_disconnected(self):
         self.opc_disconnected.emit()
@@ -374,24 +376,33 @@ class OpcuaClient(QObject):
     def opc_runner(self):
         self.data_updater = Thread(target=update, daemon=False)
         self.data_updater.start()
-        while 1:
+        while self.run_flag:
             if self.is_alive():
                 # emit signal to broadcast client connection
                 self.opc_connected.emit()
                 pass
-                # opc has stopped working, restart opc
+            # opc has stopped working, restart opc
             else:
+                # emit signal to broadcast client disconnection
+                self.opc_disconnected.emit()
                 self.client = connect("opc_start")
                 if self.client:
-                    # emit signal to broadcast client disconnection
-                    self.opc_disconnected.emit()
                     self.opc_subscribe()
             time.sleep(3)
         
 
     def close_client(self):
+        global interrupt_flag
+        self.run_flag = False
+        interrupt_flag = True
         self.opcthread.join(1)
-        self.client.disconnect()
+        self.data_updater.join(1)
+        if self.opcthread.is_alive():
+            print(" opc thread is still alive")
+        if self.data_updater.is_alive():
+            print(" opc thread is still alive")
+        if self.client:
+            self.client.disconnect()
 
 if __name__=="__main__":
     opc = OpcuaClient()
