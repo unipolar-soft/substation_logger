@@ -45,7 +45,7 @@ class OpcWindow(QWidget):
 
         self.ui.substationAddBtn.clicked.connect(self.addSubStation)
         self.ui.tagAddBtn.clicked.connect(self.addTag)
-        self.ui.urlEdit.returnPressed.connect(self.urlChanged)
+        self.ui.urlEdit.editingFinished.connect(self.urlChanged)
         self.ui.linkEdit.editingFinished.connect(self.linkEditChanged)
 
         self.ui.urlEditBtn.clicked.connect(self.urlEditClicked)
@@ -72,6 +72,7 @@ class OpcWindow(QWidget):
     def urlChanged(self):
         text = self.ui.urlEdit.text()
         self.db.update_or_insert_keyValue(conf.KEY_URL, text)
+        logger.info(f"url set to {text}")
 
         self.ui.urlEdit.setReadOnly(True)
     
