@@ -77,17 +77,8 @@ class OpcWindow(QWidget):
     
     def linkEditChanged(self):
         text = self.ui.linkEdit.text()
-        l = text.split('.')
-        if (len(l)<2):
-            show_message("Provide channel and device, eg. Channel1.Device1")
-            return
-        channel = l[0]
-        device = l[1]
-        xtraPath = '.'.join(l[2:])
-        logger.info(f"Channel: {channel}, Device: {device}, xtraPath: {xtraPath}")
+        logger.info(f"New prefix added: {text}")
         self.db.update_or_insert_keyValue(conf.KEY_LINK, text)
-        # self.db.update_or_insert_keyValue(conf.KEY_DEVICE, device)
-        # self.db.update_or_insert_keyValue(conf.KEY_XTRAPATH, xtraPath)
 
         self.ui.linkEdit.setReadOnly(True)
     
