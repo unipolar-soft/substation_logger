@@ -7,8 +7,8 @@ from logging.config import dictConfig
 
 
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect, QEvent,
-    QSize, QTime, QUrl, Qt)
+    QMetaObject, QObject, QPoint, QRect, QEvent, QTimer,
+    QSize, QTime, QUrl, Qt, QSortFilterProxyModel)
 from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter, QIntValidator, QDoubleValidator,
@@ -39,7 +39,12 @@ class DashBoard(QWidget):
         self.ui.setupUi(self)
 
         self.setupFeederTripTable()
-        self.db.feederTripAdded.connect(self.feederTripRefresh)
+        # self.db.feederTripAdded.connect(self.feederTripRefresh)
+
+        timer = QTimer(self)
+        timer.setInterval(10000)
+        timer.timeout.connect(self.feederTripRefresh)
+        timer.start()
 
     
     def feederTripRefresh(self):
@@ -47,7 +52,10 @@ class DashBoard(QWidget):
 
     def setupFeederTripTable(self):
         self.tripModel = TableModel(FeederTrip)
-        self.ui.tripTableView.setModel(self.tripModel)
+        proxyModel = QSortFilterProxyModel(self)
+        proxyModel.setSourceModel(self.tripModel)
+        proxyModel.sort(0, Qt.DescendingOrder)
+        self.ui.tripTableView.setModel(proxyModel)
         self.ui.tripTableView.setCornerButtonEnabled(False)
         self.ui.tripTableView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.ui.tripTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
