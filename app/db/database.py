@@ -33,12 +33,13 @@ class DB(QObject):
         return self.session
 
     def initialize_qsql(self):
-        self.db = QSqlDatabase.addDatabase(
-            "QSQLITE", connectionName=DATABASE_CONNECTION_NAME)
-        self.db.setDatabaseName(DATABASE_NAME)
-        if self.db.open():
-            print("Database opened in QT")
-        # self.ready_tables()
+        if not QSqlDatabase.contains(DATABASE_CONNECTION_NAME):
+            self.db = QSqlDatabase.addDatabase(
+                "QSQLITE", connectionName=DATABASE_CONNECTION_NAME)
+            self.db.setDatabaseName(DATABASE_NAME)
+            if self.db.open():
+                print("Database opened in QT")
+            # self.ready_tables()
     
     def add_substation(self, name, path):
         try:
