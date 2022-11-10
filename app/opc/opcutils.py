@@ -11,9 +11,8 @@ from ..db.database import DB
 def testUrl(url):
     client = Client(url)
     try:
-        client.connect()
-        root = client.get_root_node
-        res = True if root else False
+        points = client.connect_and_get_server_endpoints()
+        res = True if points else False
         client.disconnect()
         return res
     except Exception as e:
