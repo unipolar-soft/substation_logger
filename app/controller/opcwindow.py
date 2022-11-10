@@ -7,10 +7,10 @@ from logging.config import dictConfig
 
 
 from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect, QEvent,
+    QMetaObject, QObject, QPoint, QRect, QEvent, Signal,
     QSize, QTime, QUrl, Qt)
 from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon,
+    QFont, QFontDatabase, QGradient, QIcon, QContextMenuEvent,
     QImage, QKeySequence, QLinearGradient, QPainter, QIntValidator, QDoubleValidator,
     QPalette, QPixmap, QRadialGradient, QTransform, QAction)
 from PySide6.QtWidgets import (QApplication, QHeaderView, QLabel, QLineEdit,
@@ -25,6 +25,8 @@ from ..db.database import DB
 from ..db.tables import SubStation, Tags
 from ..models.tablemodel import TableModel
 from ..res import icons
+from ..component.tableview import TableViewWithContext
+
 dictConfig(DIC_LOGGING_CONFIG)
 logger = logging.getLogger(conf.LOGGER_NAME)
 
@@ -95,6 +97,23 @@ class OpcWindow(QWidget):
             self.ui.stationPathEdit.setText("")
             self.substationModel.select()
     
+    def editSubstation(self, row):
+        name = self.substationModel.index(row, 0).data()
+        path = self.substationModel.index(row, 1).data()
+
+        self.ui.stationNameEdit.setText(name)
+        self.ui.stationPathEdit.setText(path)
+
+        self.ui.substationAddBtn.setText("Update")
+    
+    def deleteSubStation(self, row):
+        name = self.substationModel.index(row, 0).data()
+        path = self.substationModel.index(row, 1).data()
+
+        self.db.delete_substation(name, path)
+
+        self.substationModel.select()
+    
     def addTag(self):
         tagName = self.ui.tagNameEdit.text()
         tagPath = self.ui.tagPathEdit.text()
@@ -108,24 +127,42 @@ class OpcWindow(QWidget):
             self.ui.tagPathEdit.setText("")
             self.ui.tagMonitorCheckBtn.setChecked(False)
             self.tagsModel.select()
+    
+    def editTag(self, row):
+        name = self.tagsModel.index(row, 0).data()
+        path = self.tagsModel.index(row, 1).data()
+        isMonitored = self.tagsModel.index(row, 2).data()
+
+        self.ui.tagNameEdit.setText(name)
+        self.ui.tagPathEdit.setText(path)
+        self.ui.tagMonitorCheckBtn.setChecked(bool(isMonitored))
+
+        self.ui.tagAddBtn.setText("Update")
+
+    def deleteTag(self, row):
+        name = self.tagsModel.index(row, 0).data()
+        path = self.tagsModel.index(row, 1).data()
+
+        self.db.delete_tag(name, path)
+
+        self.tagsModel.select()
 
     def setupStationTable(self):
         self.substationModel = TableModel(SubStation)
-        self.ui.substationTable.setModel(self.substationModel)
-        self.ui.substationTable.setCornerButtonEnabled(False)
-        self.ui.substationTable.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.ui.substationTable.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.ui.substationTable.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.ui.substationTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
-    
+
+        tableView = TableViewWithContext(self.substationModel)
+        self.ui.stationTableLayout.addWidget(tableView)
+
+        tableView.editSig.connect(lambda x: self.editSubstation(x))
+        tableView.deleteSig.connect(lambda x: self.deleteSubStation(x))
+
     def setupTagTable(self):
         self.tagsModel = TableModel(Tags)
-        self.ui.tagTable.setModel(self.tagsModel)
-        self.ui.tagTable.setCornerButtonEnabled(False)
-        self.ui.tagTable.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.ui.tagTable.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.ui.tagTable.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.ui.tagTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        tableView = TableViewWithContext(self.tagsModel)
+        self.ui.tagTableLayout.addWidget(tableView)
+
+        tableView.editSig.connect(lambda x: self.editTag(x))
+        tableView.deleteSig.connect(lambda x: self.deleteTag(x))
     
     def setIcons(self):
             icon = QIcon(QPixmap(":/icons/edit.png"))

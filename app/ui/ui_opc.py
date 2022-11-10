@@ -15,9 +15,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QGroupBox, QHeaderView,
+from PySide6.QtWidgets import (QApplication, QCheckBox, QFormLayout, QGroupBox,
     QLabel, QLineEdit, QPushButton, QSizePolicy,
-    QTableView, QWidget)
+    QWidget)
 
 class Ui_OPCView(object):
     def setupUi(self, OPCView):
@@ -45,9 +45,12 @@ class Ui_OPCView(object):
         self.substationAddBtn = QPushButton(self.groupBox_4)
         self.substationAddBtn.setObjectName(u"substationAddBtn")
         self.substationAddBtn.setGeometry(QRect(192, 130, 51, 30))
-        self.substationTable = QTableView(self.groupBox)
-        self.substationTable.setObjectName(u"substationTable")
-        self.substationTable.setGeometry(QRect(10, 210, 281, 381))
+        self.formLayoutWidget_2 = QWidget(self.groupBox)
+        self.formLayoutWidget_2.setObjectName(u"formLayoutWidget_2")
+        self.formLayoutWidget_2.setGeometry(QRect(10, 210, 281, 401))
+        self.stationTableLayout = QFormLayout(self.formLayoutWidget_2)
+        self.stationTableLayout.setObjectName(u"stationTableLayout")
+        self.stationTableLayout.setContentsMargins(0, 0, 0, 0)
         self.groupBox_2 = QGroupBox(OPCView)
         self.groupBox_2.setObjectName(u"groupBox_2")
         self.groupBox_2.setGeometry(QRect(10, 90, 341, 621))
@@ -72,9 +75,12 @@ class Ui_OPCView(object):
         self.tagAddBtn = QPushButton(self.groupBox_3)
         self.tagAddBtn.setObjectName(u"tagAddBtn")
         self.tagAddBtn.setGeometry(QRect(220, 130, 51, 30))
-        self.tagTable = QTableView(self.groupBox_2)
-        self.tagTable.setObjectName(u"tagTable")
-        self.tagTable.setGeometry(QRect(10, 210, 301, 381))
+        self.formLayoutWidget = QWidget(self.groupBox_2)
+        self.formLayoutWidget.setObjectName(u"formLayoutWidget")
+        self.formLayoutWidget.setGeometry(QRect(9, 209, 321, 401))
+        self.tagTableLayout = QFormLayout(self.formLayoutWidget)
+        self.tagTableLayout.setObjectName(u"tagTableLayout")
+        self.tagTableLayout.setContentsMargins(0, 0, 0, 0)
         self.urlLabel = QLabel(OPCView)
         self.urlLabel.setObjectName(u"urlLabel")
         self.urlLabel.setGeometry(QRect(10, 20, 63, 20))

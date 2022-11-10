@@ -9,7 +9,7 @@ import requests
 import json
 import logging
 import copy
-from PySide6.QtCore import Signal, QObject, QTimer
+from PySide6.QtCore import Signal, QObject
 from queue import Queue
 from opcua import Client
 from opcua import ua
@@ -43,15 +43,21 @@ latest_machine_stat = {}
 # a global variable to pass the value of latest machine status
 changed_machine_status = []
 
+db = None
 url = None
 prefix = None
 tags = None
-adapter = None
 
 dateformat = "%Y-%m-%d %H:%M:%S"
 process_running = False
 process_end_signal = None
 
+def load_conf():
+    global url, prefix, tags
+
+    url = db.get_value_from_key(conf.KEY_URL)
+    prefix = db.get_value_from_key(conf.KEY_LINK)
+    tags = db.get_tags()
 
 def get_node_path(device: str, tag: str):
     if (not prefix) or (prefix == ""):
@@ -151,13 +157,15 @@ def session_for_src_addr(addr: str) -> requests.Session:
     return session
 
 def post_request(data):
-    global adapter
     headers = {'content-type': 'application/json'}
     url =  "http://192.168.0.98:8080/interruptionlog/api/pushlog.php"
-    if not adapter:
+    db_ins = DB()
+    adapater = db_ins.get_value_from_key(conf.KEY_API_ADAPTER)
+    db_ins.close()
+    if not adapater:
         logger.error("No adapter configured for API")
         return
-    address = psutil.net_if_addrs()[adapter][1].address
+    address = psutil.net_if_addrs()[adapater][1].address
     session = session_for_src_addr(address)
 
     try:
@@ -194,6 +202,7 @@ def get_time_data(breaker_status) :
         }
 
 def log_data_change(changed_status, station):
+
     feeder_status = {
         "feeder_no": changed_status["Feeder_No"],
         "interruption_type": int(changed_status["Feeder_TRIP_Status"]),
@@ -208,21 +217,22 @@ def log_data_change(changed_status, station):
     logger.info({
         station: feeder_status
     })
-    return feeder_status
-    # feeder_status_copy = copy.deepcopy(feeder_status)
-    # res = post_request(feeder_status_copy)
-    # feeder_status["api_updated"] = True if res else False
-    # # write_json(feeder_status)
-    # db.add_feeder_trip(
-    #     feeder_no = changed_status["Feeder_No"],
-    #     interruption_type = int(changed_status["Feeder_TRIP_Status"]), 
-    #     currentA = changed_status["Feeder_Relay_IA"], 
-    #     currentB = changed_status["Feeder_Relay_IB"],
-    #     currentC = changed_status["Feeder_Relay_IC"], 
-    #     power_on_time = feeder_status["power_on_time"],
-    #     power_off_time = feeder_status["power_off_time"],
-    #     api_updated = feeder_status["api_updated"]
-    #     )
+    feeder_status_copy = copy.deepcopy(feeder_status)
+    res = post_request(feeder_status_copy)
+    feeder_status["api_updated"] = True if res else False
+    # write_json(feeder_status)
+    db_ins = DB()
+    db_ins.add_feeder_trip(
+        feeder_no = changed_status["Feeder_No"],
+        interruption_type = int(changed_status["Feeder_TRIP_Status"]), 
+        currentA = changed_status["Feeder_Relay_IA"], 
+        currentB = changed_status["Feeder_Relay_IB"],
+        currentC = changed_status["Feeder_Relay_IC"], 
+        power_on_time = feeder_status["power_on_time"],
+        power_off_time = feeder_status["power_off_time"],
+        api_updated = feeder_status["api_updated"]
+        )
+    db_ins.close()
 
 def update_API(station):
     logger.info(f"Requesting server values for {station}")
@@ -244,20 +254,44 @@ def update_API(station):
         latest_machine_stat[station] != status_server
     ):
         latest_machine_stat[station] = status_server
-        return log_data_change(latest_machine_stat[station], station)
+        log_data_change(latest_machine_stat[station], station)
         # log_to_db(machine, latest_machine_stat[machineid])
-        # return
+        return
     else:
         logger.info("Previous value persists")
-        return None
 
+def update():
+    global interrupt_flag, queue
+    logger.info("Looking for event change data")
+    while True:
+        try:
+            node, value, data = tag_update_queue.get(timeout=5)
+            tag_data = extract(node, value, data)
+            # broadcast_data_change(tag_data,changed_machine_status)
+            if tag_data["value"] is not None:
+                station = tag_data["station"]
+                tag = tag_data["name"]
+                # this checks if the notifying tag value already has been updated.
+                if (
+                    station in latest_machine_stat
+                    and tag_data["value"] == latest_machine_stat[station][tag]
+                ):
+                    logger.info("Previous value persists")
+                else:
+                    logger.info(f"{tag} of {station} has changed to {str(tag_data['value'])}")
+                    logger.info(f'a full data scan for {station} en route')
+                    update_API(station)
+            else:
+                logger.info(f"Update skipped for {tag_data['name']}")
+            tag_update_queue.task_done()
+        except queue.Empty:
+            # the event queue is empty and an intruption by user is captured, 
+            # so break out of the thread
+            if interrupt_flag:
+                break
 
 # this class hosts function that listens for data change notification in tags
-class SubHandler(QObject):
-    dataChanged = Signal(dict)
-
-    # def __init__(self, callback) -> None:
-    #     self.callback = callback
+class SubHandler(object):
 
     """
     Client to subscription. It will receive events from server
@@ -265,10 +299,7 @@ class SubHandler(QObject):
 
     def datachange_notification(self, node, val, data):
         logger.info("Data change event fired")
-        # tag_update_queue.put((node, val, data))
-        # self.callback(node, val, data)
-        res = extract(node, val, data)
-        self.dataChanged.emit(res)
+        tag_update_queue.put((node, val, data))
 
     def event_notification(self, event):
         logger.info("Python: New event", event)
@@ -317,32 +348,14 @@ class OpcuaClient(QObject):
     client = None
     opc_disconnected = Signal()
     opc_connected = Signal()
-    feederTriped = Signal(dict)
     run_flag = True
-
-    def __init__(self,db, parent=None) -> None:
-        super().__init__(parent)
-        self.db = db
-        self.load_conf()
-
-    def load_conf(self):
-        global url, prefix, tags, adapter
-
-        url = self.db.get_value_from_key(conf.KEY_URL)
-        prefix = self.db.get_value_from_key(conf.KEY_LINK)
-        tags = self.db.get_tags()
-        adapter = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
 
     def opc_is_disconnected(self):
         self.opc_disconnected.emit()
     
     def start_service(self):
-        # self.opcthread = Thread(target=self.opc_runner, daemon=True)
-        # self.opcthread.start()
-        timer = QTimer(self)
-        timer.setInterval(10000)
-        timer.timeout.connect(self.opc_runner)
-        timer.start()
+        self.opcthread = Thread(target=self.opc_runner, daemon=True)
+        self.opcthread.start()
 
     def is_alive(self):
         if not self.client:
@@ -354,35 +367,13 @@ class OpcuaClient(QObject):
             logger.error(error)
             return False
     
-    def opcCallback(self, tag_data):
-        # tag_data = 
-        # broadcast_data_change(tag_data,changed_machine_status)
-        if tag_data["value"] is not None:
-            station = tag_data["station"]
-            tag = tag_data["name"]
-            # this checks if the notifying tag value already has been updated.
-            if (
-                station in latest_machine_stat
-                and tag_data["value"] == latest_machine_stat[station][tag]
-            ):
-                logger.info("Previous value persists")
-            else:
-                logger.info(f"{tag} of {station} has changed to {str(tag_data['value'])}")
-                logger.info(f'a full data scan for {station} en route')
-                data = update_API(station)
-                if data:
-                    self.feederTriped.emit(data)
-        else:
-            logger.info(f"Update skipped for {tag_data['name']}")
-    
     def opc_subscribe(self):
-        handler = SubHandler()
-        sub = self.client.create_subscription(500, handler)
-        handler.dataChanged.connect(self.opcCallback)
-        stations = self.db.get_substation_paths()
+        sub = self.client.create_subscription(500, SubHandler())
+
+        stations = db.get_substation_paths()
 
         logger.info(f"Total {len(stations)} devices found.")
-        monitored_tags = self.db.get_tags(monitored=True)
+        monitored_tags = db.get_tags(monitored=True)
 
 
         for station in stations:
@@ -397,36 +388,39 @@ class OpcuaClient(QObject):
                     self.client.disconnect()
                     self.opc_disconnected.emit()
                     break
-        self.db.close()
         return True
 
     def opc_runner(self):
-        if self.is_alive():
-            # emit signal to broadcast client connection
-            self.opc_connected.emit()
-            pass
-        # opc has stopped working, restart opc
-        else:
-            # emit signal to broadcast client disconnection
-            self.opc_disconnected.emit()
-            self.client = connect("opc_start")
-            if self.client:
-
-                self.opc_subscribe()
+        global db
+        self.data_updater = Thread(target=update, daemon=False)
+        self.data_updater.start()
+        db = DB()
+        load_conf()
+        while self.run_flag:
+            if self.is_alive():
                 # emit signal to broadcast client connection
                 self.opc_connected.emit()
+                pass
+            # opc has stopped working, restart opc
+            else:
+                # emit signal to broadcast client disconnection
+                self.opc_disconnected.emit()
+                self.client = connect("opc_start")
+                if self.client:
+                    self.opc_subscribe()
+            time.sleep(3)
         
 
     def close_client(self):
-        # global interrupt_flag
-        # self.run_flag = False
-        # interrupt_flag = True
-        # self.opcthread.join(1)
-        # self.data_updater.join(1)
-        # if self.opcthread.is_alive():
-        #     print(" opc thread is still alive")
-        # if self.data_updater.is_alive():
-        #     print(" opc thread is still alive")
+        global interrupt_flag
+        self.run_flag = False
+        interrupt_flag = True
+        self.opcthread.join(1)
+        self.data_updater.join(1)
+        if self.opcthread.is_alive():
+            print(" opc thread is still alive")
+        if self.data_updater.is_alive():
+            print(" opc thread is still alive")
         if self.client:
             self.client.disconnect()
 

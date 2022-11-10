@@ -17,12 +17,15 @@ from PySide6.QtWidgets import (QApplication, QHeaderView, QLabel, QLineEdit,
     QPushButton, QSizePolicy, QWidget, QMessageBox, QAbstractItemView,
     QMenu, QDialog, QDialogButtonBox, QVBoxLayout)
 
+from PySide6.QtSql import QSqlDatabase
+
 from ..ui.ui_dashboard import Ui_Dashboard
 from ..projutil.log_conf import DIC_LOGGING_CONFIG
 from ..projutil import conf
 from ..projutil.util import show_message
 from ..db.database import DB
-from ..db.tables import FeederTrip
+from ..db.db_config import DATABASE_NAME
+from ..db.tables import FeederTrip, SubStation
 from ..models.tablemodel import TableModel
 from ..res import icons
 dictConfig(DIC_LOGGING_CONFIG)
@@ -39,19 +42,14 @@ class DashBoard(QWidget):
         self.ui.setupUi(self)
 
         self.setupFeederTripTable()
-        # self.db.feederTripAdded.connect(self.feederTripRefresh)
-
-        timer = QTimer(self)
-        timer.setInterval(10000)
-        timer.timeout.connect(self.feederTripRefresh)
-        timer.start()
+        self.db.feederTripAdded.connect(self.feederTripRefresh)
 
     
     def feederTripRefresh(self):
         self.tripModel.select()
 
     def setupFeederTripTable(self):
-        self.tripModel = TableModel(FeederTrip)
+        self.tripModel = TableModel(FeederTrip, self)
         proxyModel = QSortFilterProxyModel(self)
         proxyModel.setSourceModel(self.tripModel)
         proxyModel.sort(0, Qt.DescendingOrder)
@@ -61,8 +59,3 @@ class DashBoard(QWidget):
         self.ui.tripTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.ui.tripTableView.setSelectionMode(QAbstractItemView.SingleSelection)
         self.ui.tripTableView.setEditTriggers(QAbstractItemView.NoEditTriggers)
-    
-    # def setIcons(self):
-    #         icon = QIcon(QPixmap(":/icons/edit.png"))
-    #         self.ui.urlEditBtn.setIcon(icon)
-    #         self.ui.linkEditBtn.setIcon(icon)

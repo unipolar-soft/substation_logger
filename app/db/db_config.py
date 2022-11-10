@@ -1,6 +1,7 @@
 DATABASE_CONNECTION_NAME = "substation_logger"
 
-DATABASE_NAME = "log.sqlite"
+# DATABASE_NAME = "log.sqlite"
+DATABASE_NAME = "logger"
 TABLE_NAME_KEYSTORE = "keystore"
 TABLE_NAME_SUBSTATION = "substation"
 TABLE_NAME_TAG = "tag"
