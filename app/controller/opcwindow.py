@@ -27,14 +27,16 @@ from ..models.tablemodel import TableModel
 from ..res import icons
 from ..component.tableview import TableViewWithContext
 from ..opc import opcutils
+from ..opc.opc import OpcuaClient
 
 dictConfig(DIC_LOGGING_CONFIG)
 logger = logging.getLogger(conf.LOGGER_NAME)
 
 class OpcWindow(QWidget):
-    def __init__(self, db: DB):
+    def __init__(self, db: DB, opcClient: OpcuaClient):
         super(OpcWindow, self).__init__()      
         self.db = db
+        self.opcClient = opcClient
         self.load_ui()
 
     def load_ui(self):
@@ -50,26 +52,45 @@ class OpcWindow(QWidget):
         self.ui.tagAddBtn.clicked.connect(self.addTag)
         self.ui.urlEdit.editingFinished.connect(self.urlChanged)
         self.ui.linkEdit.editingFinished.connect(self.linkEditChanged)
-        self.ui.opcTestBtn.clicked.connect(self.testUrl)
-
+        self.ui.opcConnectBtn.clicked.connect(self.connectOPC)
 
         self.ui.urlEditBtn.clicked.connect(self.urlEditClicked)
         self.ui.linkEditBtn.clicked.connect(self.linkeditClicked)
 
+        self.opcClient.opcConnectionStateChanged.connect(self.showConnect)
+
+    def showConnect(self, state):
+        styel = ''
+        if state:
+            styel = "background:rgb(0, 170, 127)"
+            self.ui.opcConnectBtn.setText("Disconnect")
+        else:
+            styel = "background:rgb(85, 90, 89)"
+            self.ui.opcConnectBtn.setText("Connect")
+
+        self.ui.connectionIndicator.setStyleSheet(styel)
+
     
+    def connectOPC(self):
+        if self.opcClient.is_alive():
+            self.opcClient.close_client()
+
+
+
     def testUrl(self):
         opcServerUrl = self.ui.urlEdit.text()
         if opcServerUrl:
             res = opcutils.testUrl(opcServerUrl)
             if res:
-                self.ui.connectionIndicator.setStyleSheet("background:rgb(0, 170, 127)")
+                self.ui.urlEdit.setStyleSheet("border: 3px solid green")
             else:
-                self.ui.connectionIndicator.setStyleSheet("background:rgb(85, 90, 89)")
+                self.ui.urlEdit.setStyleSheet("border: 3px solid red")
 
     def loadValues(self):
         url = self.db.get_value_from_key(conf.KEY_URL)
         self.ui.urlEdit.setText(url)
         self.ui.urlEdit.setReadOnly(True)
+        self.testUrl()
 
         link = self.db.get_value_from_key(conf.KEY_LINK)
         self.ui.linkEdit.setText(link)
@@ -87,6 +108,7 @@ class OpcWindow(QWidget):
         text = self.ui.urlEdit.text()
         self.db.update_or_insert_keyValue(conf.KEY_URL, text)
         logger.info(f"url set to {text}")
+        self.testUrl()
 
         self.ui.urlEdit.setReadOnly(True)
     

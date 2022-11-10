@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.tabs = QTabWidget(self)
-        self.tabs.addTab(OpcWindow(self.db), "OPC Conf")
+        self.tabs.addTab(OpcWindow(self.db, self.opcClient), "OPC Conf")
         self.tabs.addTab(DashBoard(self.db), "DashBoard")
         self.setCentralWidget(self.tabs)
 

@@ -315,10 +315,12 @@ class OpcuaClient(QObject):
     # process_end_signal = Signal(Batch)
 
     client = None
-    opc_disconnected = Signal()
-    opc_connected = Signal()
+    opcConnectionStateChanged = Signal(bool)
+    opc_disconnected = Signal(bool)
+    opc_connected = Signal(bool)
     feederTriped = Signal(dict)
     run_flag = True
+    connected = False
 
     def __init__(self,db, parent=None) -> None:
         super().__init__(parent)
@@ -332,13 +334,11 @@ class OpcuaClient(QObject):
         prefix = self.db.get_value_from_key(conf.KEY_LINK)
         tags = self.db.get_tags()
         adapter = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
-
-    def opc_is_disconnected(self):
-        self.opc_disconnected.emit()
     
     def start_service(self):
         # self.opcthread = Thread(target=self.opc_runner, daemon=True)
         # self.opcthread.start()
+        self.opc_runner()
         timer = QTimer(self)
         timer.setInterval(10000)
         timer.timeout.connect(self.opc_runner)
@@ -395,27 +395,26 @@ class OpcuaClient(QObject):
                 except Exception as e:
                     logger.error(e)
                     self.client.disconnect()
-                    self.opc_disconnected.emit()
+                    self.opcConnectionStateChanged.emit(False)
                     break
         self.db.close()
         return True
 
     def opc_runner(self):
         if self.is_alive():
+            self.connected = True
             # emit signal to broadcast client connection
-            self.opc_connected.emit()
+            self.opcConnectionStateChanged.emit(True)
             pass
         # opc has stopped working, restart opc
         else:
+            self.connected = False
             # emit signal to broadcast client disconnection
-            self.opc_disconnected.emit()
+            self.opcConnectionStateChanged.emit(False)
             self.client = connect("opc_start")
             if self.client:
-
+                self.opcConnectionStateChanged.emit(True)
                 self.opc_subscribe()
-                # emit signal to broadcast client connection
-                self.opc_connected.emit()
-        
 
     def close_client(self):
         # global interrupt_flag
@@ -429,6 +428,7 @@ class OpcuaClient(QObject):
         #     print(" opc thread is still alive")
         if self.client:
             self.client.disconnect()
+            self.opcConnectionStateChanged.emit(False)
 
 if __name__=="__main__":
     opc = OpcuaClient()
