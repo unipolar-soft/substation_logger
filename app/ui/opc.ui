@@ -244,24 +244,24 @@
   <widget class="QLabel" name="connectionIndicator">
    <property name="geometry">
     <rect>
-     <x>560</x>
-     <y>30</y>
+     <x>580</x>
+     <y>20</y>
      <width>31</width>
-     <height>21</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true">backgroud-color:rgb(251, 255, 235)</string>
+    <string notr="true">background:rgb(85, 90, 89)</string>
    </property>
    <property name="text">
     <string/>
    </property>
   </widget>
-  <widget class="QPushButton" name="connectionBtn">
+  <widget class="QPushButton" name="opcTestBtn">
    <property name="geometry">
     <rect>
-     <x>620</x>
-     <y>30</y>
+     <x>630</x>
+     <y>20</y>
      <width>61</width>
      <height>31</height>
     </rect>
@@ -317,6 +317,19 @@
    </property>
    <property name="text">
     <string/>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="opcConnectBtn">
+   <property name="geometry">
+    <rect>
+     <x>580</x>
+     <y>60</y>
+     <width>111</width>
+     <height>29</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Connect OPC</string>
    </property>
   </widget>
  </widget>

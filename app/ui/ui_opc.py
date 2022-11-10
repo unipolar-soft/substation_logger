@@ -89,11 +89,11 @@ class Ui_OPCView(object):
         self.urlEdit.setGeometry(QRect(80, 20, 411, 30))
         self.connectionIndicator = QLabel(OPCView)
         self.connectionIndicator.setObjectName(u"connectionIndicator")
-        self.connectionIndicator.setGeometry(QRect(560, 30, 31, 21))
-        self.connectionIndicator.setStyleSheet(u"backgroud-color:rgb(251, 255, 235)")
-        self.connectionBtn = QPushButton(OPCView)
-        self.connectionBtn.setObjectName(u"connectionBtn")
-        self.connectionBtn.setGeometry(QRect(620, 30, 61, 31))
+        self.connectionIndicator.setGeometry(QRect(580, 20, 31, 31))
+        self.connectionIndicator.setStyleSheet(u"background:rgb(85, 90, 89)")
+        self.opcTestBtn = QPushButton(OPCView)
+        self.opcTestBtn.setObjectName(u"opcTestBtn")
+        self.opcTestBtn.setGeometry(QRect(630, 20, 61, 31))
         self.linkLabel = QLabel(OPCView)
         self.linkLabel.setObjectName(u"linkLabel")
         self.linkLabel.setGeometry(QRect(10, 60, 61, 20))
@@ -106,6 +106,9 @@ class Ui_OPCView(object):
         self.linkEditBtn = QPushButton(OPCView)
         self.linkEditBtn.setObjectName(u"linkEditBtn")
         self.linkEditBtn.setGeometry(QRect(500, 60, 30, 30))
+        self.opcConnectBtn = QPushButton(OPCView)
+        self.opcConnectBtn.setObjectName(u"opcConnectBtn")
+        self.opcConnectBtn.setGeometry(QRect(580, 60, 111, 29))
 
         self.retranslateUi(OPCView)
 
@@ -127,9 +130,10 @@ class Ui_OPCView(object):
         self.tagAddBtn.setText(QCoreApplication.translate("OPCView", u"Add", None))
         self.urlLabel.setText(QCoreApplication.translate("OPCView", u"URL", None))
         self.connectionIndicator.setText("")
-        self.connectionBtn.setText(QCoreApplication.translate("OPCView", u"Test", None))
+        self.opcTestBtn.setText(QCoreApplication.translate("OPCView", u"Test", None))
         self.linkLabel.setText(QCoreApplication.translate("OPCView", u"Prefix", None))
         self.urlEditBtn.setText("")
         self.linkEditBtn.setText("")
+        self.opcConnectBtn.setText(QCoreApplication.translate("OPCView", u"Connect OPC", None))
     # retranslateUi
 

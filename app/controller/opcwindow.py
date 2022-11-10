@@ -26,6 +26,7 @@ from ..db.tables import SubStation, Tags
 from ..models.tablemodel import TableModel
 from ..res import icons
 from ..component.tableview import TableViewWithContext
+from ..opc import opcutils
 
 dictConfig(DIC_LOGGING_CONFIG)
 logger = logging.getLogger(conf.LOGGER_NAME)
@@ -49,11 +50,22 @@ class OpcWindow(QWidget):
         self.ui.tagAddBtn.clicked.connect(self.addTag)
         self.ui.urlEdit.editingFinished.connect(self.urlChanged)
         self.ui.linkEdit.editingFinished.connect(self.linkEditChanged)
+        self.ui.opcTestBtn.clicked.connect(self.testUrl)
+
 
         self.ui.urlEditBtn.clicked.connect(self.urlEditClicked)
         self.ui.linkEditBtn.clicked.connect(self.linkeditClicked)
 
     
+    def testUrl(self):
+        opcServerUrl = self.ui.urlEdit.text()
+        if opcServerUrl:
+            res = opcutils.testUrl(opcServerUrl)
+            if res:
+                self.ui.connectionIndicator.setStyleSheet("background:rgb(0, 170, 127)")
+            else:
+                self.ui.connectionIndicator.setStyleSheet("background:rgb(85, 90, 89)")
+
     def loadValues(self):
         url = self.db.get_value_from_key(conf.KEY_URL)
         self.ui.urlEdit.setText(url)
