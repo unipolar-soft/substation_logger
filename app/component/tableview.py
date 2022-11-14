@@ -26,6 +26,7 @@ class TableViewWithContext(QTableView):
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.verticalHeader().setVisible(False)
     
     def contextMenuEvent(self, event: PySide6.QtGui.QContextMenuEvent) -> None:
         logger.debug(f"row selected {self.rowAt(event.y())}")
