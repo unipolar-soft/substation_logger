@@ -54,6 +54,7 @@ class DashBoard(QWidget):
         proxyModel.setSourceModel(self.tripModel)
         proxyModel.sort(0, Qt.DescendingOrder)
         self.ui.tripTableView.setModel(proxyModel)
+        self.ui.tripTableView.verticalHeader().setVisible(False)
         self.ui.tripTableView.setCornerButtonEnabled(False)
         self.ui.tripTableView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.ui.tripTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
