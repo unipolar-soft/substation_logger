@@ -15,17 +15,13 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QHeaderView, QSizePolicy, QTableView,
-    QWidget)
+from PySide6.QtWidgets import (QApplication, QSizePolicy, QWidget)
 
 class Ui_Dashboard(object):
     def setupUi(self, Dashboard):
         if not Dashboard.objectName():
             Dashboard.setObjectName(u"Dashboard")
         Dashboard.resize(640, 480)
-        self.tripTableView = QTableView(Dashboard)
-        self.tripTableView.setObjectName(u"tripTableView")
-        self.tripTableView.setGeometry(QRect(10, 150, 621, 311))
 
         self.retranslateUi(Dashboard)
 

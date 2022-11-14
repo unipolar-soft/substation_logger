@@ -316,8 +316,6 @@ class OpcuaClient(QObject):
 
     client = None
     opcConnectionStateChanged = Signal(bool)
-    opc_disconnected = Signal(bool)
-    opc_connected = Signal(bool)
     feederTriped = Signal(dict)
     run_flag = True
     connected = False
@@ -336,19 +334,45 @@ class OpcuaClient(QObject):
         adapter = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
     
     def start_service(self):
+        global url, prefix, tags, adapter
+        
+        url = self.db.get_value_from_key(conf.KEY_URL)
+        if not url:
+            return(False, "No OPC URL is configured")
+        
+        prefix = self.db.get_value_from_key(conf.KEY_LINK)
+        if not prefix:
+            return(False, "No Prefix is configured")
+        
+        value = self.db.get_substation_paths()
+        if not value:
+            return(False, "No Substation is Added")
+        
+        tags =  self.db.get_tags()
+        if not tags:
+            return(False, "No Tag is Added")
+        
+        monitored_tags = self.db.get_tags(monitored=True)
+        if not monitored_tags:
+            return(False, "No Monitored Tag is Added")
+        
+        adapter = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
+        if not adapter:
+            return(False, "No adapter Selected")
+        
         # self.opcthread = Thread(target=self.opc_runner, daemon=True)
         # self.opcthread.start()
         self.opc_runner()
-        timer = QTimer(self)
-        timer.setInterval(10000)
-        timer.timeout.connect(self.opc_runner)
-        timer.start()
+        return (self.connected, "")
+        # timer = QTimer(self)
+        # timer.setInterval(10000)
+        # timer.timeout.connect(self.opc_runner)
+        # timer.start()
 
     def is_alive(self):
-        if not self.client:
-            return None
         try:
-            l = self.client.get_root_node()
+            l = self.client.get_endpoints()
+            logger.info("client is alive")
             return True
         except Exception as error:
             logger.error(error)
@@ -415,17 +439,9 @@ class OpcuaClient(QObject):
             if self.client:
                 self.opcConnectionStateChanged.emit(True)
                 self.opc_subscribe()
+                self.connected = True
 
-    def close_client(self):
-        # global interrupt_flag
-        # self.run_flag = False
-        # interrupt_flag = True
-        # self.opcthread.join(1)
-        # self.data_updater.join(1)
-        # if self.opcthread.is_alive():
-        #     print(" opc thread is still alive")
-        # if self.data_updater.is_alive():
-        #     print(" opc thread is still alive")
+    def stop_service(self):
         if self.client:
             self.client.disconnect()
             self.opcConnectionStateChanged.emit(False)

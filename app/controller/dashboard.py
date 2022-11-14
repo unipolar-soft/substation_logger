@@ -14,8 +14,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter, QIntValidator, QDoubleValidator,
     QPalette, QPixmap, QRadialGradient, QTransform, QAction)
 from PySide6.QtWidgets import (QApplication, QHeaderView, QLabel, QLineEdit,
-    QPushButton, QSizePolicy, QWidget, QMessageBox, QAbstractItemView,
-    QMenu, QDialog, QDialogButtonBox, QVBoxLayout)
+    QPushButton, QSizePolicy, QWidget, QMessageBox, QAbstractItemView, QTableView,
+    QMenu, QDialog, QDialogButtonBox, QVBoxLayout, QHBoxLayout)
 
 from PySide6.QtSql import QSqlDatabase
 
@@ -38,25 +38,34 @@ class DashBoard(QWidget):
         self.load_ui()
 
     def load_ui(self):
-        self.ui = Ui_Dashboard()
-        self.ui.setupUi(self)
+        # self.ui = QWidget(self)
+        self.layout = QHBoxLayout()
+        # self.setLayout(self.layout)
 
         self.setupFeederTripTable()
         self.db.feederTripAdded.connect(self.feederTripRefresh)
 
+        self.setLayout(self.layout)
+
     
     def feederTripRefresh(self):
         self.tripModel.select()
+        
 
     def setupFeederTripTable(self):
         self.tripModel = TableModel(FeederTrip, self)
         proxyModel = QSortFilterProxyModel(self)
         proxyModel.setSourceModel(self.tripModel)
         proxyModel.sort(0, Qt.DescendingOrder)
-        self.ui.tripTableView.setModel(proxyModel)
-        self.ui.tripTableView.verticalHeader().setVisible(False)
-        self.ui.tripTableView.setCornerButtonEnabled(False)
-        self.ui.tripTableView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.ui.tripTableView.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.ui.tripTableView.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.ui.tripTableView.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        
+        tripTable = QTableView()
+        self.layout.addWidget(tripTable)
+
+
+        tripTable.setModel(proxyModel)
+        tripTable.verticalHeader().setVisible(False)
+        tripTable.setCornerButtonEnabled(False)
+        tripTable.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        tripTable.setSelectionBehavior(QAbstractItemView.SelectRows)
+        tripTable.setSelectionMode(QAbstractItemView.SingleSelection)
+        tripTable.setEditTriggers(QAbstractItemView.NoEditTriggers)

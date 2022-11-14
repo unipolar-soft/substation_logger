@@ -57,8 +57,8 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.tabs = QTabWidget(self)
-        self.tabs.addTab(OpcWindow(self.db, self.opcClient), "OPC Conf")
         self.tabs.addTab(DashBoard(self.db), "DashBoard")
+        self.tabs.addTab(OpcWindow(self.db, self.opcClient), "OPC Conf")
         self.setCentralWidget(self.tabs)
 
         menuConnection = self.ui.menubar.addMenu("Connection")
@@ -83,6 +83,6 @@ class MainWindow(QMainWindow):
             logger.info(f"API Adapter Changed to {item}")
     
     def closeEvent(self, event: QCloseEvent) -> None:
-        self.opcClient.close_client()
+        self.opcClient.stop_service()
         print("Closing the window")
         # return super().closeEvent(event)

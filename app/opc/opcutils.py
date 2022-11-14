@@ -13,7 +13,6 @@ def testUrl(url):
     try:
         points = client.connect_and_get_server_endpoints()
         res = True if points else False
-        client.disconnect()
         return res
     except Exception as e:
         logger.info(e)

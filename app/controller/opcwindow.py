@@ -73,8 +73,11 @@ class OpcWindow(QWidget):
     
     def connectOPC(self):
         if self.opcClient.is_alive():
-            self.opcClient.close_client()
-
+            self.opcClient.stop_service()
+        else:
+            sucess, msg = self.opcClient.start_service()
+            if not sucess:
+                show_message(msg)
 
 
     def testUrl(self):
