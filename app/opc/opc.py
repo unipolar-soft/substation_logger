@@ -179,18 +179,18 @@ def post_request(data):
         return False
 
 def get_time_data(breaker_status) :
-    time_now = datetime.now()
+    breaker_status = int(breaker_status)
     #feeder is ON
     if breaker_status:
         return {
-            "power_on_time": time_now,
+            "power_on_time": datetime.now(),
             "power_off_time":None
         }
 
     else:
         return {
             "power_on_time": None,
-            "power_off_time": time_now
+            "power_off_time": datetime.now()
         }
 
 def log_data_change(changed_status, station):
@@ -205,24 +205,10 @@ def log_data_change(changed_status, station):
     }
     time_data = get_time_data(changed_status["Feeder_Breaker_Status"])
     feeder_status.update(time_data)
-    logger.info({
+    logger.debug({
         station: feeder_status
     })
     return feeder_status
-    # feeder_status_copy = copy.deepcopy(feeder_status)
-    # res = post_request(feeder_status_copy)
-    # feeder_status["api_updated"] = True if res else False
-    # # write_json(feeder_status)
-    # db.add_feeder_trip(
-    #     feeder_no = changed_status["Feeder_No"],
-    #     interruption_type = int(changed_status["Feeder_TRIP_Status"]), 
-    #     currentA = changed_status["Feeder_Relay_IA"], 
-    #     currentB = changed_status["Feeder_Relay_IB"],
-    #     currentC = changed_status["Feeder_Relay_IC"], 
-    #     power_on_time = feeder_status["power_on_time"],
-    #     power_off_time = feeder_status["power_off_time"],
-    #     api_updated = feeder_status["api_updated"]
-    #     )
 
 def update_API(station):
     logger.info(f"Requesting server values for {station}")
