@@ -12,7 +12,7 @@ def show_message(text):
     msg.setWindowTitle(APP_TITLE)
     # msg.setWindowIcon(QIcon(QPixmap(":/icons/p16.png")))
     msg.setText(text)
-    msg.exec()
+    return msg.exec()
 
 if __name__=="__main__":
     pass
