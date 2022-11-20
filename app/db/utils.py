@@ -5,11 +5,11 @@ def is_db_available(dbname, user, password, host="localhost", port=5432):
         conn = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
 
         conn.close()
-        return True
+        return (True, "Connected")
 
     except Exception as e:
         print(e)
-        return False
+        return (False, str(e))
 
 if __name__ == "__main__":
     print("Check if there is a connection to postgres available")

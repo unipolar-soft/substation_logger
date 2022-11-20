@@ -10,6 +10,7 @@ from PySide6.QtGui import QCloseEvent
 
 from app.db.database import DB
 from ..ui.ui_mainwindow import Ui_MainWindow
+from ..controller.dbconfcontroller import DBConf
 from ..projutil.log_conf import DIC_LOGGING_CONFIG
 from ..projutil import conf
 from .opcwindow import OpcWindow
@@ -22,7 +23,7 @@ logger = logging.getLogger(conf.LOGGER_NAME)
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        
+
         # member initializations
         self.db = DB()
         self.opcClient = OpcuaClient(self.db)
@@ -64,9 +65,16 @@ class MainWindow(QMainWindow):
         menuConnection = self.ui.menubar.addMenu("Connection")
         action = menuConnection.addAction("API Adapter")
         action.triggered.connect(self.netInterfaceSelection)
+        dbaction = menuConnection.addAction("Database")
+        dbaction.triggered.connect(self.dbConfSelection)
+
 
         self.opcClient.start_service()
     
+    def dbConfSelection(self):
+        conf = DBConf()
+        res = conf.exec()
+
     def netInterfaceSelection(self):
         prev_adap = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
         index = 0
