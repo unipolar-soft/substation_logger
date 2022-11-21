@@ -1,12 +1,13 @@
 import logging
 from logging.config import dictConfig
 from ..projutil.log_conf import DIC_LOGGING_CONFIG
-from ..projutil.conf import LOGGER_NAME
+from ..projutil import conf
 from ..projutil.util import show_message
 from sqlalchemy import create_engine, insert, delete
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from PySide6.QtSql import QSqlDatabase
+from PySide6.QtCore import QSettings
 from .tables import create_tables, KeyStore, SubStation, Tags, FeederTrip
 from sqlalchemy import update
 from PySide6.QtCore import Signal, QObject
@@ -14,7 +15,7 @@ from .db_config import DATABASE_CONNECTION_NAME, DATABASE_NAME
 
 
 dictConfig(DIC_LOGGING_CONFIG)
-logger = logging.getLogger(LOGGER_NAME)
+logger = logging.getLogger(conf.LOGGER_NAME)
 
 
 class DB(QObject):
@@ -25,21 +26,31 @@ class DB(QObject):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        # get database configs
+        settings = QSettings()
+        host = settings.value(conf.KEY_HOST)
+        port = settings.value(conf.KEY_PORT)
+        user = settings.value(conf.KEY_USER)
+        password = settings.value(conf.KEY_PASS)
+        db_name = settings.value(conf.KEY_DBNAME)
+
+        self.engine = create_engine(f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db_name}")
+
         create_tables(engine=self.engine)
         self.session = Session(self.engine)
-        self.initialize_qsql()
+        self.initialize_qsql(host, port, user, password, db_name)
 
-    def initialize_qsql(self):
+    def initialize_qsql(self, host, port, user, password, db_name):
         if not QSqlDatabase.contains(DATABASE_CONNECTION_NAME):
             # db = QSqlDatabase.addDatabase(
             #     "QSQLITE", connectionName=DATABASE_CONNECTION_NAME)
             db = QSqlDatabase.addDatabase(
                 "QPSQL", connectionName=DATABASE_CONNECTION_NAME)
-            db.setDatabaseName(DATABASE_NAME)
-            db.setHostName("127.0.0.1")
-            db.setPort(5432)
-            db.setUserName("kb")
-            db.setPassword("strongpass")
+            db.setDatabaseName(db_name)
+            db.setHostName(host)
+            db.setPort(int(port))
+            db.setUserName(user)
+            db.setPassword(password)
             if db.open():
                 print("Database opened in QT")
             # self.ready_tables()
