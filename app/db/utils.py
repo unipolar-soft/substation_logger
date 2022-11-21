@@ -1,4 +1,35 @@
 import psycopg2
+from PySide6.QtCore import QSettings
+
+def getDBConf():
+        '''
+        checks if application configaration file already contains 
+        a db connection parameters
+        '''
+        # filepath = "./app/db/db_con.json"
+        # if os.path.isfile(filepath):
+        #     with open(filepath) as f:
+        #         js = json.load(f)
+        #         return js
+        # else:
+        #     return False
+        settings =  QSettings()
+        host = settings.value("host", None)
+        port = settings.value("port", None)
+        user = settings.value("user", None)
+        password = settings.value("password", None)
+        db_name = settings.value("db_name", None)
+
+        if host and port and user and password and db_name:
+            return {
+            "host": host,
+            "port": port,
+            "user": user,
+            "password": password,
+            "db_name":  db_name
+        }
+        else:
+            return False
 
 def is_db_available(dbname, user, password, host="localhost", port=5432):
     try:
