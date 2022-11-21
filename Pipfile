@@ -11,6 +11,7 @@ requests = "*"
 psutil = "*"
 cryptography = "*"
 psycopg2 = "*"
+pyinstaller = "*"
 
 [dev-packages]
 

@@ -35,6 +35,11 @@ class MainWindow(QMainWindow):
         
         self.opcClient.feederTriped.connect(self.feederTripAdd)
     
+    def reInitializeDB(self):
+        self.db.close()
+        self.db = DB()
+        self.opcClient.db = self.db
+
     def feederTripAdd(self, feeder_status):
         logger.debug(feeder_status)
         if feeder_status:
