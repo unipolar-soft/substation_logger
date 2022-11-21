@@ -5,12 +5,13 @@ import logging
 import copy
 from logging.config import dictConfig
 
-from PySide6.QtWidgets import QMainWindow, QTabWidget, QInputDialog
+from PySide6.QtWidgets import QMainWindow, QTabWidget, QInputDialog, QDialog
 from PySide6.QtGui import QCloseEvent
 
 from app.db.database import DB
 from ..ui.ui_mainwindow import Ui_MainWindow
 from ..controller.dbconfcontroller import DBConf
+from ..controller.apipusher import APIPusher
 from ..projutil.log_conf import DIC_LOGGING_CONFIG
 from ..projutil import conf
 from .opcwindow import OpcWindow
@@ -27,6 +28,7 @@ class MainWindow(QMainWindow):
         # member initializations
         self.db = DB()
         self.opcClient = OpcuaClient(self.db)
+        self.apipusher = APIPusher(self.db)
 
         self.load_ui()
         adapter = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
@@ -34,9 +36,8 @@ class MainWindow(QMainWindow):
             self.db.update_or_insert_keyValue(conf.KEY_API_ADAPTER, "Ethernet")
         
         self.opcClient.feederTriped.connect(self.feederTripAdd)
-    
-    def reInitializeDB(self):
-        self.db.close()
+
+    def dbReInitialize(self):
         self.db = DB()
         self.opcClient.db = self.db
 
@@ -44,9 +45,9 @@ class MainWindow(QMainWindow):
         logger.debug(feeder_status)
         if feeder_status:
             feeder_status_copy = copy.deepcopy(feeder_status)
-            # res = post_request(feeder_status_copy)
-            # feeder_status["api_updated"] = True if res else False
-            feeder_status["api_updated"] = False
+            res = self.apipusher.post_request(feeder_status_copy)
+            feeder_status["api_updated"] = True if res else False
+            # feeder_status["api_updated"] = False
             # write_json(feeder_status)
             self.db.add_feeder_trip(
                 feeder_no = feeder_status["feeder_no"],
@@ -78,7 +79,9 @@ class MainWindow(QMainWindow):
     
     def dbConfSelection(self):
         conf = DBConf()
+        conf.accepted.connect(self.dbReInitialize)
         res = conf.exec()
+
 
     def netInterfaceSelection(self):
         prev_adap = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
@@ -88,12 +91,15 @@ class MainWindow(QMainWindow):
         try:
             index = interface_name_list.index(prev_adap)
         except ValueError:
-            logger.info("Previousl Selected Adapter Not Found")
+            logger.info("Previously Selected Adapter Not Found")
         item, ok = QInputDialog.getItem(self, "Select API Interface",
                                 "Interface", interface_name_list, index, False )
         if ok and item:
-            self.db.update_or_insert_keyValue(conf.KEY_API_ADAPTER, item)
-            logger.info(f"API Adapter Changed to {item}")
+            if prev_adap != item:
+                self.db.update_or_insert_keyValue(conf.KEY_API_ADAPTER, item)
+                logger.info(f"API Adapter Changed to {item}")
+                # updte adapter for API request
+                self.apipusher.updateAdapter()
     
     def closeEvent(self, event: QCloseEvent) -> None:
         self.opcClient.stop_service()

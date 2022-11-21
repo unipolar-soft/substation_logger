@@ -26,8 +26,6 @@ class DBConf(QDialog):
         self.load_ui()
         self.ui.connectBtn.clicked.connect(self.dbConnect)
 
-        self.ui.buttonBox.clicked.connect(self.cl)
-
         self.ui.hostEdit.editingFinished.connect(
             lambda : self.valueEdited(self.ui.hostEdit, conf.KEY_HOST)
             )
@@ -104,13 +102,11 @@ class DBConf(QDialog):
 
             logger.info(f"Database Config written as follows {confs}")
 
-    def cl(self, btn):
-        if btn.text() == "OK":
-            self.saveConfig()
-        else:
-            print("Clicked")
+    def accept(self) -> None:
+        if self.dbConnect():
+                self.saveConfig()
+                return super().accept()
         
-
     def show_error(self, msg):
         self.ui.con_msg.setStyleSheet("color:red")
         self.ui.con_msg.setText(msg)
@@ -130,9 +126,11 @@ class DBConf(QDialog):
                 self.ui.label_7.setStyleSheet("background:rgb(57, 240, 47)")
                 self.ui.con_msg.setStyleSheet("")
                 self.ui.con_msg.setText("Connected")
+                return True
             else:
                 msgs = msg.split(":")[-1]
                 self.ui.con_msg.setText(msgs)
                 self.ui.con_msg.setStyleSheet("color:red")
                 self.ui.label_7.setStyleSheet("")
+                return False
 
