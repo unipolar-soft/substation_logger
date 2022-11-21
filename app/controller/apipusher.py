@@ -21,6 +21,7 @@ class APIPusher(object):
         adapter = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
         self.address = psutil.net_if_addrs()[adapter][1].address
 
+    # find session for the adapater
     def session_for_src_addr(self) -> requests.Session:
         """
         Create `Session` which will bind to the specified local address
