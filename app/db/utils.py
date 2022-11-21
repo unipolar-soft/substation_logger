@@ -1,5 +1,6 @@
 import psycopg2
 from PySide6.QtCore import QSettings
+from ..projutil import conf
 
 def getDBConf():
         '''
@@ -14,11 +15,11 @@ def getDBConf():
         # else:
         #     return False
         settings =  QSettings()
-        host = settings.value("host", None)
-        port = settings.value("port", None)
-        user = settings.value("user", None)
-        password = settings.value("password", None)
-        db_name = settings.value("db_name", None)
+        host = settings.value(conf.KEY_HOST, None)
+        port = settings.value(conf.KEY_PORT, None)
+        user = settings.value(conf.KEY_USER, None)
+        password = settings.value(conf.KEY_PASS, None)
+        db_name = settings.value(conf.KEY_DBNAME, None)
 
         if host and port and user and password and db_name:
             return {

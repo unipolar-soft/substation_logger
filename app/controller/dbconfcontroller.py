@@ -19,20 +19,44 @@ class DBConf(QDialog):
     def __init__(self, parent= None):
         super().__init__(parent)
 
+        self.changed = False
+        self.settings = QSettings()
         self.ui = Ui_DBConf()
         self.ui.setupUi(self)
         self.load_ui()
         self.ui.connectBtn.clicked.connect(self.dbConnect)
 
         self.ui.buttonBox.clicked.connect(self.cl)
+
+        self.ui.hostEdit.editingFinished.connect(
+            lambda : self.valueEdited(self.ui.hostEdit, conf.KEY_HOST)
+            )
+        self.ui.portEdit.editingFinished.connect(
+            lambda : self.valueEdited(self.ui.portEdit, conf.KEY_PORT)
+            )
+        self.ui.userEdit.editingFinished.connect(
+            lambda : self.valueEdited(self.ui.userEdit, conf.KEY_USER)
+            )
+        self.ui.passwordEdit.editingFinished.connect(
+            lambda : self.valueEdited(self.ui.passwordEdit, conf.KEY_PASS)
+            )
+        self.ui.dbnameEdit.editingFinished.connect(
+            lambda : self.valueEdited(self.ui.dbnameEdit, conf.KEY_DBNAME)
+            )
     
+    def valueEdited(self, editedUI, editedComponet):
+        newVal = editedUI.text()
+        prevValue = self.settings.value(editedComponet, None)
+        if prevValue != newVal:
+            print(f'{prevValue}--{newVal}')
+            self.changed = True
+
     def load_ui(self):
-        settings =  QSettings()
-        host = settings.value("host", None)
-        port = settings.value("port", None)
-        user = settings.value("user", None)
-        password = settings.value("password", None)
-        db_name = settings.value("db_name", None)
+        host = self.settings.value(conf.KEY_HOST, None)
+        port = self.settings.value(conf.KEY_PORT, None)
+        user = self.settings.value(conf.KEY_USER, None)
+        password = self.settings.value(conf.KEY_PASS, None)
+        db_name = self.settings.value(conf.KEY_DBNAME, None)
 
         self.ui.hostEdit.setText(host)
         self.ui.portEdit.setText(str(port))
@@ -49,7 +73,6 @@ class DBConf(QDialog):
         if port == "":
             self.show_error("No Port provided")
             return None
-        port = int(port)
         user = self.ui.userEdit.text()
         if user == "":
             self.show_error("No user provided")
@@ -63,23 +86,23 @@ class DBConf(QDialog):
             self.show_error("No db name provided")
             return None
         return {
-            "host": host,
-            "port": port,
-            "user": user,
-            "password": password,
-            "db_name":  db_name
+            conf.KEY_HOST: host,
+            conf.KEY_PORT: port,
+            conf.KEY_USER: user,
+            conf.KEY_PASS: password,
+            conf.KEY_DBNAME:  db_name
         }
     
     def saveConfig(self):
-        confs = self.extractConfs()
-        settings = QSettings()
-        settings.setValue("host", confs["host"])
-        settings.setValue("port", confs["port"])
-        settings.setValue("user", confs["user"])
-        settings.setValue("password", confs["password"])
-        settings.setValue("db_name", confs["db_name"])
+        if self.changed:
+            confs = self.extractConfs()
+            self.settings.setValue(conf.KEY_HOST, confs[conf.KEY_HOST])
+            self.settings.setValue(conf.KEY_PORT, confs[conf.KEY_PORT])
+            self.settings.setValue(conf.KEY_USER, confs[conf.KEY_USER])
+            self.settings.setValue(conf.KEY_PASS, confs[conf.KEY_PASS])
+            self.settings.setValue(conf.KEY_DBNAME, confs[conf.KEY_DBNAME])
 
-        logger.info("Database Config written as follows {confs}")
+            logger.info(f"Database Config written as follows {confs}")
 
     def cl(self, btn):
         if btn.text() == "OK":
@@ -96,11 +119,11 @@ class DBConf(QDialog):
         confs = self.extractConfs()
         if confs:
             res, msg = is_db_available(
-                host = confs["host"], 
-                port = confs["port"], 
-                user = confs["user"], 
-                password = confs["password"], 
-                dbname = confs["db_name"]
+                host = confs[conf.KEY_HOST], 
+                port = confs[conf.KEY_PORT], 
+                user = confs[conf.KEY_USER], 
+                password = confs[conf.KEY_PASS], 
+                dbname = confs[conf.KEY_DBNAME]
                 )
 
             if res:
