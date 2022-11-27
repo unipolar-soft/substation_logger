@@ -263,19 +263,15 @@ def connect(caller):
     if (not url) or (url == ''):
         show_message(conf.MSG_URL_NOT_CONFIGURED)
         return
-    retry = 5
     client = None
-    while retry > 0 and not interrupt_flag :
-        try:
-            client = Client(url, timeout=10)
-            client.connect()
-            print("connected")
-            return client
-        except Exception as e:
-            logger.error("OPC Connection can't be established")
-            logger.error(e)
-        retry -= 1
-    return None
+    try:
+        client = Client(url, timeout=10)
+        client.connect()
+        return client
+    except Exception as e:
+        logger.error("OPC Connection can't be established")
+        logger.error(e)
+        return None
 
 def signal_handler(signum, frame):
     logger.info(f"signal with {signum}")
@@ -357,6 +353,8 @@ class OpcuaClient(QObject):
 
     def is_alive(self):
         try:
+            if self.client is None:
+                return False
             l = self.client.get_endpoints()
             logger.info("client is alive")
             return True
@@ -400,10 +398,11 @@ class OpcuaClient(QObject):
                 node_path = get_node_path(station, tag)
                 logger.info(f"Trying to subscribe {node_path}")
                 try:
+                    node = self.client.get_node(node_path)
                     sub.subscribe_data_change(self.client.get_node(node_path))
                     logger.info(f"subscribed to -> {node_path}")
                 except Exception as e:
-                    logger.error(e)
+                    logger.error(f'{e} for ')
                     self.client.disconnect()
                     self.opcConnectionStateChanged.emit(False)
                     break
