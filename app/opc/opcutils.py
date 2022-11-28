@@ -11,12 +11,12 @@ from ..db.database import DB
 def testUrl(url):
     client = Client(url)
     try:
-        points = client.connect_and_get_server_endpoints()
-        res = True if points else False
+        points = client.connect()
+        res = (True, "Connected") if points else (False, "Not Connected")
         return res
     except Exception as e:
         logger.info(e)
-        return False
+        return (False, e)
 
 def auditOPCConfig(db :DB):
     '''
