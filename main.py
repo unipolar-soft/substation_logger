@@ -44,7 +44,7 @@ def main(app):
 
 if __name__ == "__main__":
     app = QApplication([])
-    QApplication.setOrganizationName("Unipolar")
+    QApplication.setOrganizationName("unipolar.com.bd")
     QApplication.setApplicationName("SubLogger")
     main(app)
     
