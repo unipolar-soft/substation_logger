@@ -11,9 +11,9 @@ from ..db.database import DB
 def testUrl(url):
     client = Client(url)
     try:
-        points = client.connect()
-        res = (True, "Connected") if points else (False, "Not Connected")
-        return res
+        client.connect()
+        client.disconnect()
+        return (True, "Connected")
     except Exception as e:
         logger.info(e)
         return (False, e)

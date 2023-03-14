@@ -71,29 +71,30 @@ class OpcWindow(QWidget):
         self.ui.connectionIndicator.setStyleSheet(styel)
 
     
+    def connectionIndicatorStyling(self, state):
+        if state:
+            styelIndicator = "background:rgb(0, 170, 127)"
+            styleUrl = "border: 3px solid green"
+        else:
+            styelIndicator = "background:rgb(85, 90, 89)"
+            styleUrl = "border: 3px solid red"
+        # self.ui.connectionIndicator.setStyleSheet(styelIndicator)
+        self.ui.urlEdit.setStyleSheet(styleUrl)
+
     def connectOPC(self):
         if self.opcClient.is_alive():
             self.opcClient.stop_service()
         else:
             sucess, msg = self.opcClient.start_service()
             if not sucess:
-                show_message(msg)
-
-
-    def testUrl(self):
-        opcServerUrl = self.ui.urlEdit.text()
-        if opcServerUrl:
-            res = opcutils.testUrl(opcServerUrl)
-            if res:
-                self.ui.urlEdit.setStyleSheet("border: 3px solid green")
-            else:
-                self.ui.urlEdit.setStyleSheet("border: 3px solid red")
+                show_message(msg)  
 
     def loadValues(self):
         url = self.db.get_value_from_key(conf.KEY_URL)
         self.ui.urlEdit.setText(url)
         self.ui.urlEdit.setReadOnly(True)
-        self.testUrl()
+        res = opcutils.testUrl(url)
+        self.connectionIndicatorStyling(res[0])
 
         link = self.db.get_value_from_key(conf.KEY_LINK)
         self.ui.linkEdit.setText(link)
@@ -108,12 +109,18 @@ class OpcWindow(QWidget):
         self.ui.urlEdit.setFocus()
 
     def urlChanged(self):
-        text = self.ui.urlEdit.text()
-        self.db.update_or_insert_keyValue(conf.KEY_URL, text)
-        logger.info(f"url set to {text}")
-        self.testUrl()
+        newUrl = self.ui.urlEdit.text()
+        logger.info(f"url set to {newUrl}")
 
-        self.ui.urlEdit.setReadOnly(True)
+        if newUrl != "":
+            res = opcutils.testUrl(newUrl)
+            self.connectionIndicatorStyling(res[0])   
+            if not res[0]:
+                show_message(str(res[1]))
+                
+                return
+            self.ui.urlEdit.setReadOnly(True)
+            self.db.update_or_insert_keyValue(conf.KEY_URL, newUrl)
     
     def linkEditChanged(self):
         text = self.ui.linkEdit.text()

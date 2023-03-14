@@ -6,20 +6,22 @@ from logging.config import dictConfig
 from ..projutil.log_conf import DIC_LOGGING_CONFIG
 from ..projutil import conf
 from ..db.database import DB
+from PySide6.QtCore import QSettings
 
 dictConfig(DIC_LOGGING_CONFIG)
 logger = logging.getLogger(conf.LOGGER_NAME)
 
 class APIPusher(object):
 
-    def __init__(self, db: DB) -> None:
-        self.db = db
+    def __init__(self) -> None:
         self.dateformat = "%Y-%m-%d %H:%M:%S"
-        self.updateAdapter()
 
-    def updateAdapter(self):
-        adapter = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
-        self.address = psutil.net_if_addrs()[adapter][1].address
+        self.settings = QSettings()
+
+    def get_address(self):
+        adapter = self.settings.value(conf.API_INTERFACE, "Ethernet")
+        address = psutil.net_if_addrs()[adapter][1].address
+        return address
 
     # find session for the adapater
     def session_for_src_addr(self) -> requests.Session:
@@ -34,16 +36,17 @@ class APIPusher(object):
                 connections=requests.adapters.DEFAULT_POOLSIZE,
                 maxsize=requests.adapters.DEFAULT_POOLSIZE,
                 # This should be a tuple of (address, port). Port 0 means auto-selection.
-                source_address=(self.address, 0),
+                source_address=(self.get_address(), 0),
             )
 
         return session
 
     def post_request(self, data):
         headers = {'content-type': 'application/json'}
-        url =  "http://192.168.0.98:8080/interruptionlog/api/pushlog.php"
+        url = self.settings.value(conf.API_URL)
+        # url =  "http://192.168.0.98:8080/interruptionlog/api/pushlog.php"
         session = self.session_for_src_addr()
-
+        response = None
         try:
             if data["power_on_time"] != None:
                 data["power_on_time"]  = data["power_on_time"].strftime(self.dateformat)
@@ -52,12 +55,10 @@ class APIPusher(object):
 
         #enclose data in an array, the API expectiing an array
             response = session.post(url, data=json.dumps([data]), headers=headers)
-            response = response.json()
-            if response["Status"]:
-                logger.info(f"API data updated for {data['feeder_no']}")
-                return True
-            else:
-                return False
+            logger.info(response.json())
+            logger.info(f"API data updated for {data['feeder_no']}")
+            response.close()
+            return True
         except requests.RequestException as e:
             logger.error(e)
             return False

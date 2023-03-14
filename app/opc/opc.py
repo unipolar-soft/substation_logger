@@ -73,7 +73,7 @@ def extract(node, val, data):
     serverT = data_value.ServerTimestamp
     tag_update_time = sourceT if sourceT else serverT
     tag_data = {
-        "station": tag_identifier.split(".")[1],
+        "station": tag_identifier.split(".")[-2],
         "name": tag_name,
         "path": tag_identifier,
         "value": tag_value,
