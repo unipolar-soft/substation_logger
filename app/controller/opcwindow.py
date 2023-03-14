@@ -34,7 +34,9 @@ logger = logging.getLogger(conf.LOGGER_NAME)
 
 class OpcWindow(QWidget):
     def __init__(self, db: DB, opcClient: OpcuaClient):
-        super(OpcWindow, self).__init__()      
+        super(OpcWindow, self).__init__()  
+
+        self.setWindowTitle("OPC Configuration")    
         self.db = db
         self.opcClient = opcClient
         self.load_ui()

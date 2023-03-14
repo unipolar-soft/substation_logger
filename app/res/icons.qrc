@@ -1,5 +1,9 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
     <file>icons/edit.png</file>
+    <file>icons/logo2.png</file>
+    <file>icons/logo3.png</file>
+    <file>icons/logo4.png</file>
+    <file>icons/logo5.png</file>
 </qresource>
 </RCC>

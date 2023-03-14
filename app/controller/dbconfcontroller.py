@@ -21,8 +21,6 @@ class DBConf(QDialog):
 
         self.changed = False
         self.settings = QSettings()
-        self.ui = Ui_DBConf()
-        self.ui.setupUi(self)
         self.load_ui()
         self.ui.connectBtn.clicked.connect(self.dbConnect)
 
@@ -50,6 +48,10 @@ class DBConf(QDialog):
             self.changed = True
 
     def load_ui(self):
+        self.ui = Ui_DBConf()
+        self.ui.setupUi(self)
+        
+        self.setWindowTitle("Database Configuration")
         host = self.settings.value(conf.KEY_HOST, None)
         port = self.settings.value(conf.KEY_PORT, None)
         user = self.settings.value(conf.KEY_USER, None)

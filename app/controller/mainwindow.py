@@ -1,5 +1,5 @@
 # This Python file uses the following encoding: utf-8
-import psutil
+import sys
 import logging
 import copy
 from logging.config import dictConfig
@@ -68,6 +68,7 @@ class MainWindow(QMainWindow):
     def load_ui(self):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        self.setWindowTitle("Dashboard")
         self.tabs = QTabWidget(self)
         self.tabs.addTab(DashBoard(self.db), "DashBoard")
         self.tabs.addTab(OpcWindow(self.db, self.opcClient), "OPC Conf")
@@ -91,7 +92,11 @@ class MainWindow(QMainWindow):
         conf.accepted.connect(self.dbReInitialize)
         res = conf.exec()
     
-    def closeEvent(self, event: QCloseEvent) -> None:
+    # def closeEvent(self, event: QCloseEvent) -> None:
+    #     self.opcClient.stop_service()
+    #     print("Closing the window")
+    #     return super().closeEvent(event)
+    
+    def cleanClose(self):
         self.opcClient.stop_service()
-        print("Closing the window")
-        # return super().closeEvent(event)
+        sys.exit(0)

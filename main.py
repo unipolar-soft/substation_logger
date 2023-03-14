@@ -1,20 +1,21 @@
 # This Python file uses the following encoding: utf-8
-import os
-import json
-from pathlib import Path
 import sys
 
-from PySide6.QtWidgets import QApplication
-from  PySide6.QtCore import QSettings
+from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 from app.controller.mainwindow import MainWindow
 from app.projutil.util import show_message
 from app.db.utils import is_db_available, getDBConf
 from app.controller.dbconfcontroller import DBConf
+from PySide6.QtGui import QIcon, QPixmap
+from app.controller.systemtray import SystemTrayIcon
+
+from app.res import icons
 
 def launchMainWindow(app):
     
     widget = MainWindow()
-    widget.show()
+    trayicon = SystemTrayIcon(QIcon(QPixmap(':/icons/logo5.png')), app, widget)
+    trayicon.show()
     sys.exit(app.exec())
 
 def main(app):
@@ -46,5 +47,8 @@ if __name__ == "__main__":
     app = QApplication([])
     QApplication.setOrganizationName("unipolar.com.bd")
     QApplication.setApplicationName("SubLogger")
+    QApplication.setApplicationDisplayName("Storian by Unipolar")
+    QApplication.setWindowIcon(QIcon(QPixmap(':/icons/logo5.png')))
+    app.setQuitOnLastWindowClosed(False)
     main(app)
     

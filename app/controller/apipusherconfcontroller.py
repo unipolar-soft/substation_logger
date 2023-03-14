@@ -20,8 +20,6 @@ class APIPushConf(QDialog):
 
         self.changed = False
         self.settings = QSettings()
-        self.ui = Ui_APIConfDialog()
-        self.ui.setupUi(self)
         self.load_ui()
         
         self.ui.update_pushButton.clicked.connect(self.update)
@@ -75,6 +73,10 @@ class APIPushConf(QDialog):
             self.settings.setValue(conf.API_DATA_FORMAT, data_format)
 
     def load_ui(self):
+        self.ui = Ui_APIConfDialog()
+        self.ui.setupUi(self)
+
+        self.setWindowTitle("API Configuration")
 
         _api_push_enabled = self.settings.value(conf.API_PUSH_ENABLED, 0)
         _api_push_enabled = bool(_api_push_enabled)
