@@ -13,6 +13,7 @@ cryptography = "*"
 psycopg2 = "*"
 pyinstaller = "*"
 pywin32 = "*"
+pyodbc = "*"
 
 [dev-packages]
 

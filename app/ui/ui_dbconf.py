@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'dbconf.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.0
+## Created by: Qt User Interface Compiler version 6.4.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -15,9 +15,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QAbstractButton, QApplication, QDialog, QDialogButtonBox,
-    QFormLayout, QLabel, QLineEdit, QPushButton,
-    QSizePolicy, QWidget)
+from PySide6.QtWidgets import (QAbstractButton, QApplication, QComboBox, QDialog,
+    QDialogButtonBox, QFormLayout, QLabel, QLineEdit,
+    QPushButton, QSizePolicy, QWidget)
 
 class Ui_DBConf(object):
     def setupUi(self, DBConf):
@@ -32,7 +32,7 @@ class Ui_DBConf(object):
         self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
         self.formLayoutWidget = QWidget(DBConf)
         self.formLayoutWidget.setObjectName(u"formLayoutWidget")
-        self.formLayoutWidget.setGeometry(QRect(10, 50, 531, 191))
+        self.formLayoutWidget.setGeometry(QRect(10, 50, 531, 221))
         self.formLayout = QFormLayout(self.formLayoutWidget)
         self.formLayout.setObjectName(u"formLayout")
         self.formLayout.setContentsMargins(0, 0, 0, 0)
@@ -86,6 +86,16 @@ class Ui_DBConf(object):
 
         self.formLayout.setWidget(4, QFormLayout.FieldRole, self.dbnameEdit)
 
+        self.dbms_label = QLabel(self.formLayoutWidget)
+        self.dbms_label.setObjectName(u"dbms_label")
+
+        self.formLayout.setWidget(5, QFormLayout.LabelRole, self.dbms_label)
+
+        self.dbms_select_comboBox = QComboBox(self.formLayoutWidget)
+        self.dbms_select_comboBox.setObjectName(u"dbms_select_comboBox")
+
+        self.formLayout.setWidget(5, QFormLayout.FieldRole, self.dbms_select_comboBox)
+
         self.label_6 = QLabel(DBConf)
         self.label_6.setObjectName(u"label_6")
         self.label_6.setGeometry(QRect(160, 20, 231, 31))
@@ -98,11 +108,11 @@ class Ui_DBConf(object):
         self.con_msg.setGeometry(QRect(10, 289, 521, 41))
         self.label_7 = QLabel(DBConf)
         self.label_7.setObjectName(u"label_7")
-        self.label_7.setGeometry(QRect(430, 250, 21, 29))
+        self.label_7.setGeometry(QRect(430, 280, 21, 29))
         self.label_7.setStyleSheet(u"background:rgb(182, 182, 182)")
         self.connectBtn = QPushButton(DBConf)
         self.connectBtn.setObjectName(u"connectBtn")
-        self.connectBtn.setGeometry(QRect(460, 250, 80, 29))
+        self.connectBtn.setGeometry(QRect(460, 280, 80, 29))
 
         self.retranslateUi(DBConf)
         self.buttonBox.accepted.connect(DBConf.accept)
@@ -118,6 +128,7 @@ class Ui_DBConf(object):
         self.label_3.setText(QCoreApplication.translate("DBConf", u"User", None))
         self.label_4.setText(QCoreApplication.translate("DBConf", u"Password", None))
         self.label_5.setText(QCoreApplication.translate("DBConf", u"DB Name", None))
+        self.dbms_label.setText(QCoreApplication.translate("DBConf", u"DBMS", None))
         self.label_6.setText(QCoreApplication.translate("DBConf", u"Database Configuration", None))
         self.con_msg.setText("")
         self.label_7.setText("")

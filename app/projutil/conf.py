@@ -12,6 +12,7 @@ KEY_PORT = "port"
 KEY_USER = "user"
 KEY_PASS = "password"
 KEY_DBNAME = "db_name"
+KEY_DBMS = "dbms"
 
 MSG_URL_NOT_CONFIGURED = "URL is not Configured"
 MSG_Prefix_NOT_CONFIGURED = "Prefix is not Configured"
@@ -20,5 +21,8 @@ API_PUSH_ENABLED = "API_PUSH_ENABLED"
 API_INTERFACE = "API_INTERFACE"
 API_URL = "API_URL"
 API_DATA_FORMAT = "API_DATA_FORMAT"
+
+DBMS_PG = 'pgsql'
+DBMS_MS = 'mssql'
 
 
