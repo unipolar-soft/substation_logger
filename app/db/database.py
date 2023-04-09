@@ -131,7 +131,7 @@ class DB(QObject):
         with Session(self.engine) as session:
             stmt = (
                 update(SubStation)
-                .filter(SubStation.path == path, SubStation.prefix == prefix)
+                .filter(SubStation.path == path)
                 .values(name=name, path=path, prefix=prefix)
             )
             session.execute(stmt)

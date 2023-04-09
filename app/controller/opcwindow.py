@@ -61,6 +61,9 @@ class OpcWindow(QWidget):
 
         self.opcClient.opcConnectionStateChanged.connect(self.showConnect)
 
+        self.substation_update_running = False
+        self.tag_update_running = False
+
     def showConnect(self, state):
         styel = ''
         if state:
@@ -142,11 +145,17 @@ class OpcWindow(QWidget):
         if stationPrefix == '':
             show_message("Station Prefix must be Provided")
             return
-        if self.db.add_substation(stationName, stationPath, stationPrefix):
-            self.ui.stationNameEdit.setText("")
-            self.ui.stationPathEdit.setText("")
-            self.ui.stationPrefixEdit.setText("")
-            self.substationModel.select()
+        if self.substation_update_running:
+            self.db.update_substation(stationName, stationPath, stationPrefix)
+            self.ui.substationAddBtn.setText("Add")
+            self.substation_update_running = False
+        else: 
+            self.db.add_substation(stationName, stationPath, stationPrefix)
+        
+        self.substationModel.select()
+        self.ui.stationNameEdit.setText("")
+        self.ui.stationPathEdit.setText("")
+        self.ui.stationPrefixEdit.setText("")
     
     def editSubstation(self, row):
         name = self.substationModel.index(row, 0).data()
@@ -158,6 +167,7 @@ class OpcWindow(QWidget):
         self.ui.stationPrefixEdit.setText(prefix)
 
         self.ui.substationAddBtn.setText("Update")
+        self.substation_update_running = True
 
     
     def deleteSubStation(self, row):
@@ -177,12 +187,17 @@ class OpcWindow(QWidget):
         if tagPath == '':
             show_message("Tag Path must be Provided")
             return
-        if self.db.add_tag(tagName, tagPath, isMonitored):
-            self.ui.tagNameEdit.setText("")
-            self.ui.tagPathEdit.setText("")
-            self.ui.tagMonitorCheckBtn.setChecked(False)
-            self.tagsModel.select()
-    
+        if self.tag_update_running:
+            self.db.update_tag(tagName, tagPath, isMonitored)
+            self.ui.tagAddBtn.setText("Add")
+            self.tag_update_running = False
+        else:
+            self.db.add_tag(tagName, tagPath, isMonitored)
+        self.ui.tagNameEdit.setText("")
+        self.ui.tagPathEdit.setText("")
+        self.ui.tagMonitorCheckBtn.setChecked(False)
+        self.tagsModel.select()
+
     def editTag(self, row):
         name = self.tagsModel.index(row, 0).data()
         path = self.tagsModel.index(row, 1).data()
@@ -193,6 +208,7 @@ class OpcWindow(QWidget):
         self.ui.tagMonitorCheckBtn.setChecked(bool(isMonitored))
 
         self.ui.tagAddBtn.setText("Update")
+        self.tag_update_running = True
 
     def deleteTag(self, row):
         name = self.tagsModel.index(row, 0).data()
