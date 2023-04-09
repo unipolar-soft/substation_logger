@@ -44,7 +44,7 @@ latest_machine_stat = {}
 changed_machine_status = []
 
 url = None
-prefix = None
+# prefix = None
 tags = None
 adapter = None
 
@@ -53,11 +53,11 @@ process_running = False
 process_end_signal = None
 
 
-def get_node_path(device: str, tag: str):
-    if (not prefix) or (prefix == ""):
-        show_message(conf.MSG_Prefix_NOT_CONFIGURED)
-        return
-    path = f"ns=2;s={prefix}.{device}.{tag}"
+def get_node_path(channel:str, device: str, tag: str):
+    # if (not prefix) or (prefix == ""):
+    #     show_message(conf.MSG_Prefix_NOT_CONFIGURED)
+    #     return
+    path = f"ns=2;s={channel}.{device}.{tag}"
     # logger.info(path)
     return path
 
@@ -79,6 +79,7 @@ def extract(node, val, data):
         "value": tag_value,
         "health": tag_health,
         "last_updated": tag_update_time,
+        "channel": '.'.join(tag_identifier.split('.')[:-2])
     }
     logger.debug(tag_data)
     return tag_data
@@ -90,13 +91,13 @@ def get_device_state(tag_data):
         process_running = True
         return None
     elif tag_data['value'] == 1 and process_running:
-        values = bulkread_machine_tags(tag_data['device'])
+        values = bulkread_machine_tags(tag_data['channel'], tag_data['device'])
         process_running = False
         logger.info(values)
         return values
         
 
-def bulkread_machine_tags(device):
+def bulkread_machine_tags(channel, device):
     client = connect("bulkread")
     if not client:
         import os
@@ -104,7 +105,7 @@ def bulkread_machine_tags(device):
         return None
     nodes = []
     for tag in tags:
-        node_path = get_node_path(device, tag)
+        node_path = get_node_path(channel, device, tag)
         node = client.get_node(node_path)
         nodes.append(node)
     # let's try at least five times before surrendering to server
@@ -132,51 +133,6 @@ def bulkread_machine_tags(device):
         return None
 
     return tag_values
-
-def session_for_src_addr(addr: str) -> requests.Session:
-    """
-    Create `Session` which will bind to the specified local address
-    rather than auto-selecting it.
-    """
-    session = requests.Session()
-    for prefix in ('http://', 'https://'):
-        session.get_adapter(prefix).init_poolmanager(
-            # those are default values from HTTPAdapter's constructor
-            connections=requests.adapters.DEFAULT_POOLSIZE,
-            maxsize=requests.adapters.DEFAULT_POOLSIZE,
-            # This should be a tuple of (address, port). Port 0 means auto-selection.
-            source_address=(addr, 0),
-        )
-
-    return session
-
-def post_request(data):
-    global adapter
-    headers = {'content-type': 'application/json'}
-    url =  "http://192.168.0.98:8080/interruptionlog/api/pushlog.php"
-    if not adapter:
-        logger.error("No adapter configured for API")
-        return
-    address = psutil.net_if_addrs()[adapter][1].address
-    session = session_for_src_addr(address)
-
-    try:
-        if data["power_on_time"] != "":
-            data["power_on_time"]  = data["power_on_time"].strftime(dateformat)
-        else:
-            data["power_off_time"]  = data["power_off_time"].strftime(dateformat)
-
-    #enclose data in an array, the API expectiing an array
-        response = session.post(url, data=json.dumps([data]), headers=headers)
-        response = response.json()
-        if response["Status"]:
-            logger.info(f"API data updated for {data['feeder_no']}")
-            return True
-        else:
-            return False
-    except requests.RequestException as e:
-        logger.error(e)
-        return False
 
 def get_time_data(breaker_status) :
     breaker_status = int(breaker_status)
@@ -210,11 +166,11 @@ def log_data_change(changed_status, station):
     })
     return feeder_status
 
-def update_API(station):
-    logger.info(f"Requesting server values for {station}")
-    status_server = bulkread_machine_tags(station)
+def update_API(channel, station):
+    logger.info(f"Requesting server values for {channel}.{station}")
+    status_server = bulkread_machine_tags(channel, station)
     if not status_server:
-        logger.warning(f"Server returned no value for {station}")
+        logger.warning(f"Server returned no value for {channel}.{station}")
         return
     
     logger.info({
@@ -308,23 +264,23 @@ class OpcuaClient(QObject):
         self.load_conf()
 
     def load_conf(self):
-        global url, prefix, tags, adapter
+        global url, tags, adapter
 
         url = self.db.get_value_from_key(conf.KEY_URL)
-        prefix = self.db.get_value_from_key(conf.KEY_LINK)
+        # prefix = self.db.get_value_from_key(conf.KEY_LINK)
         tags = self.db.get_tags()
         adapter = self.db.get_value_from_key(conf.KEY_API_ADAPTER)
     
     def start_service(self):
-        global url, prefix, tags, adapter
+        global url, tags, adapter
         
         url = self.db.get_value_from_key(conf.KEY_URL)
         if not url:
             return(False, "No OPC URL is configured")
         
-        prefix = self.db.get_value_from_key(conf.KEY_LINK)
-        if not prefix:
-            return(False, "No Prefix is configured")
+        # prefix = self.db.get_value_from_key(conf.KEY_LINK)
+        # if not prefix:
+        #     return(False, "No Prefix is configured")
         
         value = self.db.get_substation_paths()
         if not value:
@@ -367,6 +323,7 @@ class OpcuaClient(QObject):
         # broadcast_data_change(tag_data,changed_machine_status)
         if tag_data["value"] is not None:
             station = tag_data["station"]
+            station_channel = tag_data['channel']
             tag = tag_data["name"]
             # this checks if the notifying tag value already has been updated.
             if (
@@ -377,7 +334,7 @@ class OpcuaClient(QObject):
             else:
                 logger.info(f"{tag} of {station} has changed to {str(tag_data['value'])}")
                 logger.info(f'a full data scan for {station} en route')
-                data = update_API(station)
+                data = update_API(station_channel, station)
                 if data:
                     self.feederTriped.emit(data)
         else:
@@ -387,7 +344,7 @@ class OpcuaClient(QObject):
         handler = SubHandler()
         sub = self.client.create_subscription(500, handler)
         handler.dataChanged.connect(self.opcCallback)
-        stations = self.db.get_substation_paths()
+        stations = self.db.get_substations()
 
         logger.info(f"Total {len(stations)} devices found.")
         monitored_tags = self.db.get_tags(monitored=True)
@@ -395,16 +352,16 @@ class OpcuaClient(QObject):
 
         for station in stations:
             for tag in monitored_tags:
-                node_path = get_node_path(station, tag)
+                node_path = get_node_path(station.prefix, station.path, tag)
                 logger.info(f"Trying to subscribe {node_path}")
                 try:
                     node = self.client.get_node(node_path)
-                    sub.subscribe_data_change(self.client.get_node(node_path))
+                    sub.subscribe_data_change(node)
                     logger.info(f"subscribed to -> {node_path}")
                 except Exception as e:
                     logger.error(f'{e} for ')
-                    self.client.disconnect()
-                    self.opcConnectionStateChanged.emit(False)
+                    # self.client.disconnect()
+                    # self.opcConnectionStateChanged.emit(False)
                     break
         self.db.close()
         return True

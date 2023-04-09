@@ -146,6 +146,11 @@ class DB(QObject):
                 subs = session.query(SubStation).filter_by(name=name).first()
         return subs
     
+    def get_substations(self):
+        with Session(self.engine) as session:
+            subs = session.query(SubStation).all()
+            return subs
+    
     def delete_substation(self,name:str, path:str, prefix:str):
         with Session(self.engine) as session:
             stmt = (
