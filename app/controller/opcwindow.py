@@ -53,11 +53,11 @@ class OpcWindow(QWidget):
         self.ui.substationAddBtn.clicked.connect(self.addSubStation)
         self.ui.tagAddBtn.clicked.connect(self.addTag)
         self.ui.urlEdit.editingFinished.connect(self.urlChanged)
-        self.ui.linkEdit.editingFinished.connect(self.linkEditChanged)
+        # self.ui.linkEdit.editingFinished.connect(self.linkEditChanged)
         self.ui.opcConnectBtn.clicked.connect(self.connectOPC)
 
         self.ui.urlEditBtn.clicked.connect(self.urlEditClicked)
-        self.ui.linkEditBtn.clicked.connect(self.linkeditClicked)
+        # self.ui.linkEditBtn.clicked.connect(self.linkeditClicked)
 
         self.opcClient.opcConnectionStateChanged.connect(self.showConnect)
 
@@ -99,12 +99,12 @@ class OpcWindow(QWidget):
         self.connectionIndicatorStyling(res[0])
 
         link = self.db.get_value_from_key(conf.KEY_LINK)
-        self.ui.linkEdit.setText(link)
-        self.ui.linkEdit.setReadOnly(True)
+        # self.ui.linkEdit.setText(link)
+        # self.ui.linkEdit.setReadOnly(True)
 
-    def linkeditClicked(self):
-        self.ui.linkEdit.setReadOnly(False)
-        self.ui.linkEdit.setFocus()
+    # def linkeditClicked(self):
+    #     self.ui.linkEdit.setReadOnly(False)
+    #     self.ui.linkEdit.setFocus()
     
     def urlEditClicked(self):
         self.ui.urlEdit.setReadOnly(False)
@@ -124,39 +124,48 @@ class OpcWindow(QWidget):
             self.ui.urlEdit.setReadOnly(True)
             self.db.update_or_insert_keyValue(conf.KEY_URL, newUrl)
     
-    def linkEditChanged(self):
-        text = self.ui.linkEdit.text()
-        logger.info(f"New prefix added: {text}")
-        self.db.update_or_insert_keyValue(conf.KEY_LINK, text)
+    # def linkEditChanged(self):
+    #     text = self.ui.linkEdit.text()
+    #     logger.info(f"New prefix added: {text}")
+    #     self.db.update_or_insert_keyValue(conf.KEY_LINK, text)
 
-        self.ui.linkEdit.setReadOnly(True)
+    #     self.ui.linkEdit.setReadOnly(True)
     
     def addSubStation(self):
         stationName = self.ui.stationNameEdit.text()
         stationPath = self.ui.stationPathEdit.text()
+        stationPrefix = self.ui.stationPrefixEdit.text()
 
         if stationPath == '':
             show_message("Station Path must be Provided")
             return
-        if self.db.add_substation(stationName, stationPath):
+        if stationPrefix == '':
+            show_message("Station Prefix must be Provided")
+            return
+        if self.db.add_substation(stationName, stationPath, stationPrefix):
             self.ui.stationNameEdit.setText("")
             self.ui.stationPathEdit.setText("")
+            self.ui.stationPrefixEdit.setText("")
             self.substationModel.select()
     
     def editSubstation(self, row):
         name = self.substationModel.index(row, 0).data()
         path = self.substationModel.index(row, 1).data()
+        prefix = self.substationModel.index(row, 2).data()
 
         self.ui.stationNameEdit.setText(name)
         self.ui.stationPathEdit.setText(path)
+        self.ui.stationPrefixEdit.setText(prefix)
 
         self.ui.substationAddBtn.setText("Update")
+
     
     def deleteSubStation(self, row):
         name = self.substationModel.index(row, 0).data()
         path = self.substationModel.index(row, 1).data()
+        prefix = self.substationModel.index(row, 2).data()
 
-        self.db.delete_substation(name, path)
+        self.db.delete_substation(name, path, prefix)
 
         self.substationModel.select()
     
@@ -213,4 +222,4 @@ class OpcWindow(QWidget):
     def setIcons(self):
             icon = QIcon(QPixmap(":/icons/edit.png"))
             self.ui.urlEditBtn.setIcon(icon)
-            self.ui.linkEditBtn.setIcon(icon)
+            # self.ui.linkEditBtn.setIcon(icon)

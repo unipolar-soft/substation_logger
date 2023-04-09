@@ -112,13 +112,13 @@ class DB(QObject):
                 show_message("A Tag with this path already exists")
                 return False
     
-    def add_substation(self, name, path):
+    def add_substation(self, name, path, prefix):
         with Session(self.engine) as session:
             try:
                 if path == "":
                     logger.error("No path for substation Provided")
                     return False
-                station = SubStation(name = name, path=path)
+                station = SubStation(name = name, path=path, prefix=prefix)
                 session.add(station)
                 session.commit()
                 return station
@@ -127,12 +127,12 @@ class DB(QObject):
                 show_message("A substation with this path already exists")
                 return False
     
-    def update_substation(self, name, path):
+    def update_substation(self, name, path, prefix):
         with Session(self.engine) as session:
             stmt = (
                 update(SubStation)
-                .filter(SubStation.path == path)
-                .values(name=name, path=path)
+                .filter(SubStation.path == path, SubStation.prefix == prefix)
+                .values(name=name, path=path, prefix=prefix)
             )
             session.execute(stmt)
             session.commit()
@@ -146,11 +146,11 @@ class DB(QObject):
                 subs = session.query(SubStation).filter_by(name=name).first()
         return subs
     
-    def delete_substation(self,name:str, path:str):
+    def delete_substation(self,name:str, path:str, prefix:str):
         with Session(self.engine) as session:
             stmt = (
                 delete(SubStation)
-                .where(SubStation.name == name)
+                .where(SubStation.path == path, SubStation.prefix == prefix)
                 .execution_options(synchronize_session="fetch")
             )
 
