@@ -341,9 +341,9 @@ class OpcuaClient(QObject):
             logger.info(f"Update skipped for {tag_data['name']}")
     
     def opc_subscribe(self):
-        handler = SubHandler()
-        sub = self.client.create_subscription(500, handler)
-        handler.dataChanged.connect(self.opcCallback)
+        self.handler = SubHandler()
+        self.sub = self.client.create_subscription(500, self.handler)
+        self.handler.dataChanged.connect(self.opcCallback)
         stations = self.db.get_substations()
 
         logger.info(f"Total {len(stations)} devices found.")
@@ -356,7 +356,7 @@ class OpcuaClient(QObject):
                 logger.info(f"Trying to subscribe {node_path}")
                 try:
                     node = self.client.get_node(node_path)
-                    sub.subscribe_data_change(node)
+                    self.sub.subscribe_data_change(node)
                     logger.info(f"subscribed to -> {node_path}")
                 except Exception as e:
                     logger.error(f'{e} for ')
@@ -365,6 +365,18 @@ class OpcuaClient(QObject):
                     break
         self.db.close()
         return True
+    
+    def subscribe_new_station(self, station):
+        monitored_tags = self.db.get_tags(monitored=True)
+        for tag in monitored_tags:
+            node_path = get_node_path(station.prefix, station.path, tag)
+            logger.info(f"Trying to subscribe {node_path}")
+            try:
+                node = self.client.get_node(node_path)
+                self.sub.subscribe_data_change(node)
+                logger.info(f"subscribed to -> {node_path}")
+            except Exception as e:
+                logger.error(f'{e} for ')
 
     def opc_runner(self):
         if self.is_alive():

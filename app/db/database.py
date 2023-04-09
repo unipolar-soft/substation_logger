@@ -121,7 +121,7 @@ class DB(QObject):
                 station = SubStation(name = name, path=path, prefix=prefix)
                 session.add(station)
                 session.commit()
-                return station
+                return session.query(SubStation).filter_by(path=path).first()
             except IntegrityError:
                 session.rollback()
                 show_message("A substation with this path already exists")
@@ -136,6 +136,8 @@ class DB(QObject):
             )
             session.execute(stmt)
             session.commit()
+            station = session.query(SubStation).filter_by(path=path).first()
+            return station
     
     def get_substation(self, name=None):
         subs = []

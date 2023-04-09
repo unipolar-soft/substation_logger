@@ -146,16 +146,17 @@ class OpcWindow(QWidget):
             show_message("Station Prefix must be Provided")
             return
         if self.substation_update_running:
-            self.db.update_substation(stationName, stationPath, stationPrefix)
+            substation = self.db.update_substation(stationName, stationPath, stationPrefix)
             self.ui.substationAddBtn.setText("Add")
             self.substation_update_running = False
         else: 
-            self.db.add_substation(stationName, stationPath, stationPrefix)
+            substation = self.db.add_substation(stationName, stationPath, stationPrefix)
         
         self.substationModel.select()
         self.ui.stationNameEdit.setText("")
         self.ui.stationPathEdit.setText("")
         self.ui.stationPrefixEdit.setText("")
+        self.opcClient.subscribe_new_station(substation)
     
     def editSubstation(self, row):
         name = self.substationModel.index(row, 0).data()
