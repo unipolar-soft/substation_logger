@@ -59,6 +59,7 @@ class APIPusher(object):
                 data["power_off_time"] = data["power_off_time"].strftime(
                     self.dateformat
                 )
+            data["voltage"] = None
             data = self._insert_empty_str_if_none(data)
             logger.info(f"Sending data to API {data}")
             # enclose data in an array, the API expectiing an array
@@ -71,7 +72,7 @@ class APIPusher(object):
             return False
 
 
-if __name__=='__main':
+if __name__ == "__main":
     pusher = APIPusher()
     DATA = {
         "power_on_time": "2021-07-01 12:00:00",
