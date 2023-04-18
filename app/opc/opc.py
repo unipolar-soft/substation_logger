@@ -161,7 +161,7 @@ def log_data_change(changed_status, station):
     }
     time_data = get_time_data(changed_status["Feeder_Breaker_Status"])
     feeder_status.update(time_data)
-    logger.debug({
+    logger.info({
         station: feeder_status
     })
     return feeder_status

@@ -44,10 +44,9 @@ class MainWindow(QMainWindow):
         self.opcClient.db = self.db
 
     def feederTripAdd(self, feeder_status):
-        logger.debug(feeder_status)
+        logger.info(feeder_status)
         if feeder_status:
             api_push_enabled = self.settings.value(conf.API_PUSH_ENABLED, 0)
-            feeder_status["api_updated"] = False
             if api_push_enabled:
                 feeder_status_copy = copy.deepcopy(feeder_status)
                 res = self.apipusher.post_request(feeder_status_copy)
