@@ -1,3 +1,6 @@
+import os
+import pathlib
+
 APP_TITLE = "Substation Logger"
 LOGGER_NAME = "sub_logger"
 KEY_CHANNEL = "channel"
@@ -22,7 +25,12 @@ API_INTERFACE = "API_INTERFACE"
 API_URL = "API_URL"
 API_DATA_FORMAT = "API_DATA_FORMAT"
 
-DBMS_PG = 'pgsql'
-DBMS_MS = 'mssql'
+DBMS_PG = "pgsql"
+DBMS_MS = "mssql"
 
+"""takes the base directory of the project"""
 
+# concat the base directory with the relative path of the file
+FEEDER_IDS_FILE = os.path.expanduser("~\\Documents\\feeders.json")
+
+# USER (36000000,ad45)

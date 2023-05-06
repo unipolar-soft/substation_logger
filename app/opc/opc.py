@@ -52,6 +52,13 @@ dateformat = "%Y-%m-%d %H:%M:%S"
 process_running = False
 process_end_signal = None
 
+def load_feeder_ids():
+    feeder_ids = dict()
+    with open(conf.FEEDER_IDS_FILE) as f:
+        feeder_ids = json.load(f)
+    return feeder_ids
+
+feeder_ids = load_feeder_ids()
 
 def get_node_path(channel:str, device: str, tag: str):
     # if (not prefix) or (prefix == ""):
@@ -149,7 +156,7 @@ def get_time_data(breaker_status) :
             "power_off_time": datetime.now()
         }
 
-def log_data_change(changed_status, station):
+def log_data_change(changed_status, channel, station):
     feeder_status = {
         "feeder_no": changed_status["Feeder_No"],
         "interruption_type": int(changed_status["Feeder_TRIP_Status"]),
@@ -159,6 +166,8 @@ def log_data_change(changed_status, station):
             "currentC":changed_status["Feeder_Relay_IC"]
             }
     }
+    if not feeder_status["feeder_no"]:
+        feeder_status["feeder_no"] = feeder_ids[channel][station]
     time_data = get_time_data(changed_status["Feeder_Breaker_Status"])
     feeder_status.update(time_data)
     logger.info({
@@ -186,7 +195,7 @@ def update_API(channel, station):
         latest_machine_stat[station] != status_server
     ):
         latest_machine_stat[station] = status_server
-        return log_data_change(latest_machine_stat[station], station)
+        return log_data_change(latest_machine_stat[station], channel, station)
         # log_to_db(machine, latest_machine_stat[machineid])
         # return
     else:
