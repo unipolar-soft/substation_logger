@@ -157,17 +157,19 @@ def get_time_data(breaker_status) :
         }
 
 def log_data_change(changed_status, channel, station):
+    logger.debug(changed_status)
+    trip_status = -1
+    if changed_status["Feeder_TRIP_Status"] is not None:
+        trip_status = int(changed_status["Feeder_TRIP_Status"])
     feeder_status = {
         "feeder_no": changed_status["Feeder_No"],
-        "interruption_type": int(changed_status["Feeder_TRIP_Status"]),
+        "interruption_type": trip_status,
         "current":{
             "currentA":changed_status["Feeder_Relay_IA"],
             "currentB":changed_status["Feeder_Relay_IB"],
             "currentC":changed_status["Feeder_Relay_IC"]
             }
     }
-    if not feeder_status["feeder_no"]:
-        feeder_status["feeder_no"] = feeder_ids[channel][station]
     time_data = get_time_data(changed_status["Feeder_Breaker_Status"])
     feeder_status.update(time_data)
     logger.info({
@@ -181,13 +183,15 @@ def update_API(channel, station):
     if not status_server:
         logger.warning(f"Server returned no value for {channel}.{station}")
         return
-    
+    if not status_server["Feeder_No"]:
+        status_server["Feeder_No"] = feeder_ids[channel][station]
     logger.info({
         station: status_server
     })
 
     if station not in latest_machine_stat:
-        latest_machine_stat[station] = status_server
+        logger.info("First time data scan")
+        latest_machine_stat[station] = status_server        
         return
 
     # check if the server sent values are same as previously stored value.
